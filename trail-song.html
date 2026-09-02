@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>trail song</title>
+<style>
+body{margin:0;background:#080808;overflow:hidden;cursor:crosshair}
+canvas{display:block}
+p{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);color:#222;font:10px monospace;margin:0}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<canvas id="c"></canvas>
+<p>draw. your path is the song.</p>
+<script>
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+let w, h;
+function resize() { w = c.width = innerWidth; h = c.height = innerHeight; }
+resize();
+addEventListener('resize', resize);
+
+let started = false;
+let synth, reverb;
+let lastX = 0, lastY = 0;
+let drawing = false;
+
+async function init() {
+  await Tone.start();
+  reverb = new Tone.Reverb({ decay: 5, wet: 0.4 }).toDestination();
+  synth = new Tone.FMSynth({
+    harmonicity: 3,
+    modulationIndex: 10,
+    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+    modulation: { type: 'square' }
+  }).connect(reverb);
+  synth.volume.value = -15;
+  started = true;
+}
+
+c.addEventListener('mousedown', async (e) => {
+  if (!started) await init();
+  drawing = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+
+c.addEventListener('mousemove', (e) => {
+  if (!drawing || !started) return;
+  
+  const mx = e.clientX;
+  const my = e.clientY;
+  
+  // draw line
+  const speed = Math.sqrt((mx-lastX)**2 + (my-lastY)**2);
+  const alpha = Math.min(0.8, speed / 50);
+  x.strokeStyle = `rgba(150,170,190,${alpha})`;
+  x.lineWidth = Math.max(0.5, 3 - speed/30);
+  x.beginPath();
+  x.moveTo(lastX, lastY);
+  x.lineTo(mx, my);
+  x.stroke();
+  
+  // x = pitch, y = harmonicity, speed = modulationIndex
+  const freq = 100 + (mx / w) * 600;
+  synth.frequency.setTargetAtTime(freq, Tone.now(), 0.02);
+  synth.harmonicity.setTargetAtTime(1 + (my / h) * 8, Tone.now(), 0.05);
+  
+  if (speed > 2) {
+    synth.triggerAttackRelease(freq, 0.05);
+  }
+  
+  lastX = mx;
+  lastY = my;
+});
+
+c.addEventListener('mouseup', () => { drawing = false; });
+
+// slow fade
+setInterval(() => {
+  x.fillStyle = 'rgba(8,8,8,0.01)';
+  x.fillRect(0, 0, w, h);
+}, 50);
+</script>

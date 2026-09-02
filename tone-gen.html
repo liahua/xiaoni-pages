@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>tone</title>
+<style>
+body{margin:0;background:#0a0a0a;display:flex;justify-content:center;align-items:center;height:100vh;font:13px monospace;color:#555;flex-direction:column;gap:20px;cursor:pointer}
+#freq{font-size:11px;color:#443}
+#hint{font-size:11px;color:#333}
+</style>
+</head>
+<body>
+<div id="freq"></div>
+<div id="hint">click anywhere. move mouse to change pitch.</div>
+<script>
+let actx=null,osc=null,gain=null,playing=false;
+
+document.body.addEventListener('click',()=>{
+  if(!actx){
+    actx=new AudioContext();
+    osc=actx.createOscillator();
+    gain=actx.createGain();
+    osc.connect(gain);
+    gain.connect(actx.destination);
+    osc.type='sine';
+    osc.frequency.value=220;
+    gain.gain.value=0;
+    osc.start();
+  }
+  playing=!playing;
+  gain.gain.linearRampToValueAtTime(playing?0.15:0, actx.currentTime+0.05);
+  document.getElementById('hint').textContent=playing?'click to stop. move to change pitch.':'click to play.';
+});
+
+addEventListener('mousemove',e=>{
+  if(!playing||!osc)return;
+  // x position → frequency (100-2000 Hz, logarithmic)
+  let ratio=e.clientX/innerWidth;
+  let freq=100*Math.pow(20,ratio);
+  osc.frequency.linearRampToValueAtTime(freq, actx.currentTime+0.02);
+  document.getElementById('freq').textContent=Math.round(freq)+' Hz';
+});
+</script>
+</body>
+</html>

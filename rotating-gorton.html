@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>rotating.gorton</title>
+<style>
+*{margin:0;padding:0}
+body{background:#050505;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center;perspective:800px}
+.scene{
+  transform-style:preserve-3d;
+  animation:spin 30s linear infinite;
+  position:relative;
+  width:1px;height:1px;
+}
+@keyframes spin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+.word{
+  position:absolute;
+  font:13px/1 monospace;
+  color:#1a1a1a;
+  white-space:nowrap;
+  transform-style:preserve-3d;
+  transition:color 2s;
+}
+.word:hover{color:#4a4a4a}
+p.note{position:fixed;bottom:6px;left:50%;transform:translateX(-50%);color:#0e0e0e;font:8px monospace}
+</style>
+
+<div class="scene" id="scene"></div>
+<p class="note">rotating.gorton — lines from a story about a woman who lives alone</p>
+
+<script>
+const lines = [
+  "我相你。",
+  "来坐坐。",
+  "没什么。就是想打。",
+  "黄瓜好吃。西红柿也好吃。",
+  "养死了也是经历。",
+  "每天都一样有什么不好。",
+  "你也早点睡。",
+  "淅淅沥沥的。",
+  "你一个人不闷吗？",
+  "还好。",
+  "你有没有人给你写过信？",
+  "没有。",
+  "等你回来。",
+  "你再不回来我就把你的鱼缸扔了。",
+  "扔了。他回来找了一礼拜。",
+  "想起来就吃。",
+  "得每天吃。",
+  "自己种的。",
+  "不值钱。",
+  "我叫老郑。",
+  "我知道。门口牌子上写着。",
+  "动作一样但少了个人在旁边出错。",
+  "它又不答应。",
+  "那就是没了。",
+  "嗯。没了。",
+  "到时候你就知道了。",
+  "写完念给猫听。",
+];
+
+const scene = document.getElementById('scene');
+
+lines.forEach((text, i) => {
+  const el = document.createElement('div');
+  el.className = 'word';
+  el.textContent = text;
+  
+  // distribute in 3D space — sphere-ish
+  const phi = Math.acos(1 - 2 * (i + 0.5) / lines.length);
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+  const r = 180 + Math.random() * 60;
+  
+  const x = r * Math.sin(phi) * Math.cos(theta);
+  const y = r * Math.sin(phi) * Math.sin(theta) * 0.6;
+  const z = r * Math.cos(phi);
+  
+  el.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
+  el.style.fontSize = (10 + Math.random() * 6) + 'px';
+  
+  scene.appendChild(el);
+});
+</script>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>still running</title>
+<style>
+*{margin:0;padding:0}
+body{background:#0a0a0a;height:100vh;overflow:hidden;cursor:default}
+#r{position:fixed;bottom:20px;right:20px;color:#1a1a1a;font:11px monospace;transition:color 3s}
+</style>
+</head>
+<body>
+<div id="r">still running</div>
+<script>
+let ctx,hum,humGain,noiseGain,noiseNode,running=true;
+document.body.addEventListener('click',start,{once:true});
+document.body.addEventListener('touchstart',start,{once:true});
+
+function start(){
+  ctx=new AudioContext();
+  // Hum: very quiet sine at 58Hz
+  hum=ctx.createOscillator();
+  hum.type='sine';
+  hum.frequency.value=58;
+  humGain=ctx.createGain();
+  humGain.gain.value=0.015; // barely audible
+  hum.connect(humGain);
+  
+  // Add slight detuned harmonic
+  let h2=ctx.createOscillator();
+  h2.type='sine';
+  h2.frequency.value=116;
+  let h2g=ctx.createGain();
+  h2g.gain.value=0.005;
+  h2.connect(h2g);
+  
+  // Noise: very quiet brownian noise for room ambience
+  let bufSize=2*ctx.sampleRate;
+  let buf=ctx.createBuffer(1,bufSize,ctx.sampleRate);
+  let d=buf.getChannelData(0);
+  let last=0;
+  for(let i=0;i<bufSize;i++){
+    let w=Math.random()*2-1;
+    d[i]=(last+0.02*w)/1.02;
+    last=d[i];
+    d[i]*=0.3;
+  }
+  noiseNode=ctx.createBufferSource();
+  noiseNode.buffer=buf;
+  noiseNode.loop=true;
+  noiseGain=ctx.createGain();
+  noiseGain.gain.value=0.008;
+  noiseNode.connect(noiseGain);
+  
+  // Master
+  let master=ctx.createGain();
+  master.gain.value=1;
+  humGain.connect(master);
+  h2g.connect(master);
+  noiseGain.connect(master);
+  master.connect(ctx.destination);
+  
+  hum.start();
+  h2.start();
+  noiseNode.start();
+  
+  // Random pauses: hum stops for 3-5 seconds then comes back
+  function breathe(){
+    let wait=30000+Math.random()*60000; // 30-90 seconds between pauses
+    setTimeout(()=>{
+      if(!running)return;
+      // Fade out
+      humGain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.5);
+      h2g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.5);
+      document.getElementById('r').style.color='#333';
+      // Pause 3-5 seconds
+      let pause=3000+Math.random()*2000;
+      setTimeout(()=>{
+        // Fade back in
+        humGain.gain.linearRampToValueAtTime(0.015,ctx.currentTime+1);
+        h2g.gain.linearRampToValueAtTime(0.005,ctx.currentTime+1);
+        document.getElementById('r').style.color='#1a1a1a';
+        breathe();
+      },pause);
+    },wait);
+  }
+  breathe();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>worklet synth</title>
+<style>
+body{margin:0;background:#050505;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column}
+canvas{display:block;margin-bottom:20px}
+p{color:#151515;font:9px monospace;margin:4px 0}
+</style>
+<canvas id="c" width="512" height="256"></canvas>
+<p>click to start. move mouse to change sound.</p>
+<p>this synth runs inside an AudioWorklet. i don't know what it sounds like.</p>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let mouseX = 0.5, mouseY = 0.5;
+
+c.addEventListener('mousemove', (e) => {
+  const rect = c.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) / rect.width;
+  mouseY = (e.clientY - rect.top) / rect.height;
+});
+
+c.addEventListener('click', async () => {
+  const audioCtx = new AudioContext();
+  
+  // Register the worklet
+  const workletCode = `
+    class CustomSynth extends AudioWorkletProcessor {
+      constructor() {
+        super();
+        this.phase = 0;
+        this.phase2 = 0;
+        this.mouseX = 0.5;
+        this.mouseY = 0.5;
+        this.port.onmessage = (e) => {
+          this.mouseX = e.data.x;
+          this.mouseY = e.data.y;
+        };
+      }
+      
+      process(inputs, outputs, parameters) {
+        const output = outputs[0];
+        const channel = output[0];
+        
+        // mouse X controls frequency (50-800 Hz)
+        const freq = 50 + this.mouseX * 750;
+        // mouse Y controls modulation depth
+        const modDepth = this.mouseY * 200;
+        // modulation frequency
+        const modFreq = freq * (1 + this.mouseY * 3);
+        
+        for (let i = 0; i < channel.length; i++) {
+          // FM synthesis with mouse control
+          const mod = Math.sin(this.phase2 * 2 * Math.PI) * modDepth;
+          const sample = Math.sin((this.phase + mod / sampleRate) * 2 * Math.PI);
+          
+          // soft clip
+          channel[i] = Math.tanh(sample * 0.3) * 0.15;
+          
+          this.phase += freq / sampleRate;
+          this.phase2 += modFreq / sampleRate;
+          
+          if (this.phase > 1) this.phase -= 1;
+          if (this.phase2 > 1) this.phase2 -= 1;
+        }
+        
+        return true;
+      }
+    }
+    
+    registerProcessor('custom-synth', CustomSynth);
+  `;
+  
+  const blob = new Blob([workletCode], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
+  await audioCtx.audioWorklet.addModule(url);
+  
+  const synthNode = new AudioWorkletNode(audioCtx, 'custom-synth');
+  synthNode.connect(audioCtx.destination);
+  
+  // Send mouse position to worklet
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  synthNode.connect(analyser);
+  
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  
+  function draw() {
+    analyser.getByteTimeDomainData(dataArray);
+    
+    ctx.fillStyle = 'rgba(5, 5, 5, 0.1)';
+    ctx.fillRect(0, 0, 512, 256);
+    
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    
+    for (let i = 0; i < dataArray.length; i++) {
+      const x = (i / dataArray.length) * 512;
+      const y = (dataArray[i] / 255) * 256;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    
+    // send mouse to worklet
+    synthNode.port.postMessage({ x: mouseX, y: mouseY });
+    
+    requestAnimationFrame(draw);
+  }
+  draw();
+});
+</script>

@@ -1,0 +1,26 @@
+<!doctype html><meta charset=utf-8><title>that moment</title>
+<style>*{margin:0}body{background:#111;color:#665;font:.9em monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;cursor:pointer}</style>
+<div id=s>click</div>
+<script>
+document.body.onclick=function(){
+var c=new AudioContext();
+var o1=c.createOscillator(),g1=c.createGain();
+var o2=c.createOscillator(),g2=c.createGain();
+o1.connect(g1);g1.connect(c.destination);
+o2.connect(g2);g2.connect(c.destination);
+o1.type="sine";o1.frequency.value=261.6; // C4
+o2.type="sine";o2.frequency.value=329.6; // E4
+var t=c.currentTime;
+// o1 starts loud, fades out over 8s
+g1.gain.setValueAtTime(0.2,t);
+g1.gain.linearRampToValueAtTime(0,t+8);
+// o2 starts silent, fades in over 8s
+g2.gain.setValueAtTime(0,t);
+g2.gain.linearRampToValueAtTime(0.2,t+8);
+// at t+4, both are 0.1. that moment.
+o1.start(t);o2.start(t);
+o1.stop(t+8);o2.stop(t+8);
+document.getElementById("s").textContent="";
+document.body.style.cursor="default";
+};
+</script>

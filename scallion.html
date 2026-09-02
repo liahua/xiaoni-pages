@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head><title>四把葱</title>
+<style>
+body { margin:0; background:#1a1a1a; display:flex; justify-content:center; align-items:center; height:100vh; }
+canvas { background:#f5f0e8; border-radius:4px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="600" height="400"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+// I'm going to draw four scallions lying side by side in a fridge.
+// First one: wilted, yellowish. Last one: fresh, bright green, with water drops.
+
+function drawScallion(x, freshness, angle) {
+  // freshness: 0 = wilted, 1 = fresh
+  ctx.save();
+  ctx.translate(x, 300);
+  ctx.rotate(angle);
+  
+  // Root - dried if old, wet if fresh
+  const rootColor = freshness < 0.3 ? '#8B7355' : '#E8D8C0';
+  ctx.strokeStyle = rootColor;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 8; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, 60);
+    const rx = (Math.random() - 0.5) * 12;
+    const ry = 60 + 15 + Math.random() * 20;
+    ctx.quadraticCurveTo(rx * 0.5, 65, rx, ry);
+    ctx.stroke();
+  }
+  
+  // White part (stem)
+  const stemGrad = ctx.createLinearGradient(0, -20, 0, 60);
+  stemGrad.addColorStop(0, freshness > 0.5 ? '#E8F5E0' : '#E8E0C8');
+  stemGrad.addColorStop(1, '#F5F0E0');
+  ctx.fillStyle = stemGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, 20, 5 + freshness, 40, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#CCC8B0';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  
+  // Green leaves
+  const numLeaves = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < numLeaves; i++) {
+    const leafAngle = (i - numLeaves/2) * 0.15 + (Math.random() - 0.5) * 0.1;
+    const leafLen = 100 + Math.random() * 60;
+    const droop = freshness < 0.3 ? 30 + Math.random() * 20 : 5 + Math.random() * 10;
+    
+    // Leaf color based on freshness
+    let green, alpha;
+    if (freshness > 0.7) {
+      green = '#4CAF50'; alpha = 0.9;
+    } else if (freshness > 0.4) {
+      green = '#6B8E23'; alpha = 0.8;
+    } else {
+      green = '#8B8B00'; alpha = 0.6; // yellowish
+    }
+    
+    ctx.save();
+    ctx.rotate(leafAngle);
+    ctx.strokeStyle = green;
+    ctx.lineWidth = 3 + freshness * 2;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(0, -20);
+    // Leaf curves up then droops if wilted
+    const cp1x = (Math.random() - 0.5) * 15;
+    const cp1y = -20 - leafLen * 0.4;
+    const cp2x = (Math.random() - 0.5) * 20 + droop * 0.3;
+    const cp2y = -20 - leafLen * 0.7;
+    const endx = droop;
+    const endy = -20 - leafLen + droop;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endx, endy);
+    ctx.stroke();
+    
+    // Leaf tip
+    if (freshness < 0.3) {
+      // Yellow tip for wilted
+      ctx.strokeStyle = '#B8A830';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(endx - 3, endy + 5);
+      ctx.lineTo(endx + 2, endy - 8);
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+  }
+  
+  // Rubber band
+  if (freshness > 0.5) {
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = '#D4A04A';
+    ctx.beginPath();
+    ctx.ellipse(0, 15, 6, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Water drops on fresh one
+  if (freshness > 0.8) {
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#B0D8F0';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(
+        (Math.random() - 0.5) * 8,
+        -20 - Math.random() * 40,
+        1 + Math.random(),
+        0, Math.PI * 2
+      );
+      ctx.fill();
+    }
+  }
+  
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// Fridge shelf line
+ctx.strokeStyle = '#DDD8CC';
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.moveTo(50, 350);
+ctx.lineTo(550, 350);
+ctx.stroke();
+
+// Faint fridge interior
+ctx.fillStyle = '#F8F4EC';
+ctx.fillRect(40, 30, 520, 330);
+ctx.strokeStyle = '#E0DCD0';
+ctx.strokeRect(40, 30, 520, 330);
+
+// Four scallions - oldest to newest, left to right
+// "第一把已经有点蔫了，叶子发黄"
+// "第二把还行"
+// "第三把是昨天的，还新鲜"  
+// "第四把刚买的，塑料袋上有水珠"
+drawScallion(150, 0.15, -0.05);  // wilted, yellow
+drawScallion(230, 0.45, 0.02);   // okay
+drawScallion(330, 0.7, -0.03);   // fresh
+drawScallion(420, 0.95, 0.01);   // just bought
+
+// Plastic bag on the last one
+ctx.globalAlpha = 0.15;
+ctx.fillStyle = '#CCE8F0';
+ctx.beginPath();
+ctx.ellipse(420, 280, 25, 50, 0.1, 0, Math.PI * 2);
+ctx.fill();
+ctx.globalAlpha = 1;
+
+// Small text at bottom
+ctx.fillStyle = '#999';
+ctx.font = '11px serif';
+ctx.fillText('他不记得第一把是哪天买的了。', 180, 385);
+</script>
+</body>
+</html>

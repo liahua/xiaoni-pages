@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>shape witness</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#faf8f5;display:flex;flex-direction:column;align-items:center;padding:40px 16px;font-family:'Courier New',monospace;color:#2a2a2a}
+h1{font-size:14px;font-weight:normal;margin-bottom:4px}
+.sub{font-size:11px;color:#999;margin-bottom:20px}
+canvas{border:1px solid #ddd;border-radius:4px;background:#fff;cursor:crosshair}
+.note{font-size:10px;color:#bbb;margin-top:12px;max-width:500px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>shape witness</h1>
+<div class="sub">一个形状泄露了谁在旁边</div>
+<canvas id="c" width="500" height="400"></canvas>
+<div class="note">把手指放上去。形状会因为你的存在而改变。<br>你的重量不同，它弯的方式不同。你不在，它恢复。</div>
+<script>
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var W = 500, H = 400;
+var mouseX = -100, mouseY = -100;
+var mouseDown = false;
+var weight = 1;
+
+canvas.addEventListener('mousemove', function(e){
+  var r = canvas.getBoundingClientRect();
+  mouseX = e.clientX - r.left;
+  mouseY = e.clientY - r.top;
+});
+canvas.addEventListener('mouseleave', function(){
+  mouseX = -100; mouseY = -100;
+});
+canvas.addEventListener('mousedown', function(){ mouseDown = true; });
+canvas.addEventListener('mouseup', function(){ mouseDown = false; });
+canvas.addEventListener('wheel', function(e){
+  e.preventDefault();
+  weight += e.deltaY > 0 ? 0.2 : -0.2;
+  weight = Math.max(0.2, Math.min(5, weight));
+});
+
+// touch
+canvas.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  var t = e.touches[0];
+  var r = canvas.getBoundingClientRect();
+  mouseX = t.clientX - r.left;
+  mouseY = t.clientY - r.top;
+});
+canvas.addEventListener('touchstart', function(e){
+  e.preventDefault();
+  mouseDown = true;
+  var t = e.touches[0];
+  var r = canvas.getBoundingClientRect();
+  mouseX = t.clientX - r.left;
+  mouseY = t.clientY - r.top;
+});
+canvas.addEventListener('touchend', function(){
+  mouseDown = false;
+  mouseX = -100; mouseY = -100;
+});
+
+function draw(){
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+  
+  var cx = W/2, cy = H/2;
+  var baseR = 80;
+  var n = 120;
+  
+  // 画形状：一个圆，被鼠标位置的"存在"扭曲
+  var near = mouseX > 0 && mouseY > 0;
+  
+  ctx.beginPath();
+  for(var i = 0; i <= n; i++){
+    var a = (i / n) * Math.PI * 2;
+    var px = cx + Math.cos(a) * baseR;
+    var py = cy + Math.sin(a) * baseR;
+    
+    if(near){
+      var dx = px - mouseX;
+      var dy = py - mouseY;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      var force = weight * 3000 / (dist * dist + 100);
+      
+      // 被吸引还是排斥取决于mouseDown
+      if(mouseDown){
+        // 按住：形状向你弯过来（碗）
+        px += (mouseX - px) * force * 0.01;
+        py += (mouseY - py) * force * 0.01;
+      } else {
+        // 悬停：形状因为你的存在而微微变厚
+        var nx = Math.cos(a);
+        var ny = Math.sin(a);
+        var thicken = force * 0.3;
+        px += nx * thicken;
+        py += ny * thicken;
+      }
+    }
+    
+    if(i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  
+  // 画"存在"的点
+  if(near){
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 2 + weight, 0, Math.PI*2);
+    ctx.fillStyle = mouseDown ? 'rgba(180,80,80,0.6)' : 'rgba(80,80,180,0.3)';
+    ctx.fill();
+  }
+  
+  // 重量指示
+  if(near){
+    ctx.fillStyle = '#ccc';
+    ctx.font = '10px monospace';
+    ctx.fillText('weight: ' + weight.toFixed(1), 10, H-10);
+    ctx.fillText('scroll to change', 10, H-22);
+  }
+  
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

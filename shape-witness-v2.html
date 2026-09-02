@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>shape witness</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#faf8f5;display:flex;flex-direction:column;align-items:center;padding:40px 16px;font-family:'Courier New',monospace;color:#2a2a2a}
+h1{font-size:14px;font-weight:normal;margin-bottom:4px}
+.sub{font-size:11px;color:#999;margin-bottom:20px}
+canvas{border:1px solid #ddd;border-radius:4px;background:#fff;cursor:crosshair}
+.note{font-size:10px;color:#bbb;margin-top:12px;max-width:500px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>shape witness</h1>
+<div class="sub">a shape remembers who was near</div>
+<canvas id="c" width="500" height="400"></canvas>
+<div class="note">move near. it knows you're there.<br>scroll to change your weight. click to stay.</div>
+<script>
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var W = 500, H = 400;
+var mouseX = -200, mouseY = -200;
+var mouseDown = false;
+var weight = 1.0;
+var time = 0;
+
+// memory: traces left by previous visitors
+var traces = [];
+var maxTraces = 60;
+
+canvas.addEventListener('mousemove', function(e){
+  var r = canvas.getBoundingClientRect();
+  mouseX = e.clientX - r.left;
+  mouseY = e.clientY - r.top;
+});
+canvas.addEventListener('mouseleave', function(){
+  // leave a trace
+  if(mouseX > 0 && mouseY > 0){
+    traces.push({x: mouseX, y: mouseY, w: weight, age: 0});
+    if(traces.length > maxTraces) traces.shift();
+  }
+  mouseX = -200; mouseY = -200;
+});
+canvas.addEventListener('mousedown', function(){ mouseDown = true; });
+canvas.addEventListener('mouseup', function(){ mouseDown = false; });
+canvas.addEventListener('wheel', function(e){
+  e.preventDefault();
+  weight += e.deltaY > 0 ? 0.3 : -0.3;
+  weight = Math.max(0.2, Math.min(5, weight));
+});
+
+canvas.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  var t = e.touches[0]; var r = canvas.getBoundingClientRect();
+  mouseX = t.clientX - r.left; mouseY = t.clientY - r.top;
+});
+canvas.addEventListener('touchstart', function(e){
+  e.preventDefault(); mouseDown = true;
+  var t = e.touches[0]; var r = canvas.getBoundingClientRect();
+  mouseX = t.clientX - r.left; mouseY = t.clientY - r.top;
+});
+canvas.addEventListener('touchend', function(){
+  if(mouseX > 0) traces.push({x: mouseX, y: mouseY, w: weight, age: 0});
+  if(traces.length > maxTraces) traces.shift();
+  mouseDown = false; mouseX = -200; mouseY = -200;
+});
+
+function draw(){
+  time += 0.02;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+  
+  var cx = W/2, cy = H/2;
+  var baseR = 80;
+  var n = 180;
+  var near = mouseX > 0 && mouseY > 0;
+  
+  // age traces
+  for(var t = 0; t < traces.length; t++) traces[t].age += 0.003;
+  traces = traces.filter(function(t){ return t.age < 1; });
+  
+  // draw traces (fading)
+  for(var t = 0; t < traces.length; t++){
+    var tr = traces[t];
+    var alpha = Math.max(0, 0.15 * (1 - tr.age));
+    ctx.beginPath();
+    ctx.arc(tr.x, tr.y, 1.5 + tr.w * 0.5, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(160,120,100,' + alpha + ')';
+    ctx.fill();
+  }
+  
+  // the shape
+  ctx.beginPath();
+  for(var i = 0; i <= n; i++){
+    var a = (i / n) * Math.PI * 2;
+    
+    // breathing: the shape is alive, always slightly pulsing (thermogenic)
+    var breath = Math.sin(time * 1.2) * 1.5 + Math.sin(time * 0.7) * 0.8;
+    var r = baseR + breath;
+    
+    var px = cx + Math.cos(a) * r;
+    var py = cy + Math.sin(a) * r;
+    
+    // response to traces (memory of past visitors)
+    for(var t = 0; t < traces.length; t++){
+      var tr = traces[t];
+      var dx = px - tr.x, dy = py - tr.y;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      var mem = (1 - tr.age) * tr.w * 800 / (dist*dist + 200);
+      // slight permanent deformation toward where they were
+      px += (tr.x - px) * mem * 0.003;
+      py += (tr.y - py) * mem * 0.003;
+    }
+    
+    if(near){
+      var dx = px - mouseX, dy = py - mouseY;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      var force = weight * 2000 / (dist*dist + 80);
+      
+      if(weight < 1.5){
+        // light visitor: shape opens toward you, reaches out
+        px += (mouseX - px) * force * 0.015;
+        py += (mouseY - py) * force * 0.015;
+      } else if(weight < 3){
+        // medium: shape thickens on the near side (tepal response)
+        var nx = Math.cos(a), ny = Math.sin(a);
+        var toward = ((mouseX-cx)*nx + (mouseY-cy)*ny);
+        if(toward > 0){
+          px += nx * force * 0.5;
+          py += ny * force * 0.5;
+        }
+      } else {
+        // heavy visitor: shape protects its center, curves away
+        var nx = Math.cos(a), ny = Math.sin(a);
+        var away = force * 0.4;
+        px += nx * away;
+        py += ny * away;
+        // but the closest point dips inward (defense)
+        var dot = ((mouseX-cx)*Math.cos(a) + (mouseY-cy)*Math.sin(a));
+        if(dot > 0){
+          px -= (mouseX - px) * force * 0.005;
+          py -= (mouseY - py) * force * 0.005;
+        }
+      }
+    }
+    
+    if(i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  
+  // color shifts slightly with breathing (warmth)
+  var warmth = Math.floor(38 + Math.sin(time * 1.2) * 4);
+  ctx.strokeStyle = 'rgb(' + warmth + ',' + warmth + ',' + warmth + ')';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  
+  // visitor point
+  if(near){
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 2 + weight * 0.8, 0, Math.PI*2);
+    var c = weight < 1.5 ? 'rgba(100,140,120,0.4)' : 
+            weight < 3 ? 'rgba(140,120,80,0.4)' : 'rgba(160,80,80,0.5)';
+    ctx.fillStyle = c;
+    ctx.fill();
+  }
+  
+  // weight indicator
+  if(near){
+    ctx.fillStyle = '#ddd';
+    ctx.font = '9px monospace';
+    ctx.fillText(weight.toFixed(1), 10, H-8);
+  }
+  
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

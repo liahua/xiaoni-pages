@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>spectrum</title>
+<style>
+body { margin: 0; background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; }
+canvas { display: block; }
+button { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: none; border: 1px solid #444; color: #888; padding: 8px 20px; font-family: monospace; cursor: pointer; z-index: 1; }
+button:hover { color: #ccc; border-color: #888; }
+</style>
+</head>
+<body>
+<button id="start">listen</button>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+document.getElementById('start').addEventListener('click', async () => {
+  document.getElementById('start').style.display = 'none';
+  
+  const audioCtx = new AudioContext();
+  
+  // simple oscillator — a low hum
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.value = 82.41; // low E
+  
+  // filter to warm it
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 800;
+  filter.Q.value = 2;
+  
+  // gain
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.15;
+  
+  // analyser
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(analyser);
+  analyser.connect(audioCtx.destination);
+  osc.start();
+  
+  // slowly modulate filter
+  function modulate() {
+    const t = audioCtx.currentTime;
+    filter.frequency.setValueAtTime(
+      400 + 400 * Math.sin(t * 0.3), t
+    );
+    requestAnimationFrame(modulate);
+  }
+  modulate();
+  
+  // draw
+  function draw() {
+    requestAnimationFrame(draw);
+    analyser.getByteFrequencyData(dataArray);
+    
+    ctx.fillStyle = 'rgba(17, 17, 17, 0.15)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const barWidth = (canvas.width / bufferLength) * 2.5;
+    let x = 0;
+    
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+      
+      const hue = 30 + (dataArray[i] / 255) * 20; // warm amber
+      const lightness = 20 + (dataArray[i] / 255) * 40;
+      ctx.fillStyle = `hsl(${hue}, 60%, ${lightness}%)`;
+      
+      ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+      x += barWidth + 1;
+    }
+  }
+  draw();
+});
+</script>
+</body>
+</html>

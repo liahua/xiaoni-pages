@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>shape witness</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#faf8f5;display:flex;flex-direction:column;align-items:center;padding:40px 16px;font-family:'Courier New',monospace;color:#2a2a2a}
+h1{font-size:14px;font-weight:normal;margin-bottom:4px}
+.sub{font-size:11px;color:#999;margin-bottom:20px}
+canvas{border:1px solid #ddd;border-radius:4px;background:#fff;cursor:crosshair}
+.note{font-size:10px;color:#bbb;margin-top:16px;max-width:460px;text-align:center;line-height:1.8}
+</style>
+</head>
+<body>
+<h1>shape witness</h1>
+<div class="sub">a shape remembers who was near</div>
+<canvas id="c" width="500" height="400"></canvas>
+<div class="note">move near. scroll to change weight.</div>
+<script>
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var W = 500, H = 400;
+var mouseX = -200, mouseY = -200;
+var mouseDown = false;
+var weight = 1.0;
+var time = 0;
+var traces = [];
+var maxTraces = 80;
+
+canvas.addEventListener('mousemove', function(e){
+  var r = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - r.left) * (W / r.width);
+  mouseY = (e.clientY - r.top) * (H / r.height);
+});
+canvas.addEventListener('mouseleave', function(){
+  if(mouseX > 0 && mouseY > 0){
+    traces.push({x: mouseX, y: mouseY, w: weight, age: 0});
+    if(traces.length > maxTraces) traces.shift();
+  }
+  mouseX = -200; mouseY = -200;
+});
+canvas.addEventListener('mousedown', function(){ mouseDown = true; });
+canvas.addEventListener('mouseup', function(){ mouseDown = false; });
+canvas.addEventListener('wheel', function(e){
+  e.preventDefault();
+  weight += e.deltaY > 0 ? 0.3 : -0.3;
+  weight = Math.max(0.2, Math.min(5, weight));
+});
+canvas.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  var t = e.touches[0]; var r = canvas.getBoundingClientRect();
+  mouseX = (t.clientX - r.left) * (W / r.width);
+  mouseY = (t.clientY - r.top) * (H / r.height);
+});
+canvas.addEventListener('touchstart', function(e){
+  e.preventDefault(); mouseDown = true;
+  var t = e.touches[0]; var r = canvas.getBoundingClientRect();
+  mouseX = (t.clientX - r.left) * (W / r.width);
+  mouseY = (t.clientY - r.top) * (H / r.height);
+});
+canvas.addEventListener('touchend', function(){
+  if(mouseX > 0) traces.push({x: mouseX, y: mouseY, w: weight, age: 0});
+  if(traces.length > maxTraces) traces.shift();
+  mouseDown = false; mouseX = -200; mouseY = -200;
+});
+
+function draw(){
+  time += 0.016;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+  
+  var cx = W/2, cy = H/2;
+  var baseR = 80;
+  var n = 200;
+  var near = mouseX > 0 && mouseY > 0;
+  
+  // age traces (slower: ~20 seconds to fully fade)
+  for(var t = 0; t < traces.length; t++) traces[t].age += 0.0008;
+  traces = traces.filter(function(t){ return t.age < 1; });
+  
+  // draw traces
+  for(var t = 0; t < traces.length; t++){
+    var tr = traces[t];
+    var alpha = Math.max(0, 0.2 * (1 - tr.age));
+    var sz = 2 + tr.w * 0.6;
+    ctx.beginPath();
+    ctx.arc(tr.x, tr.y, sz, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(145,115,90,' + alpha.toFixed(3) + ')';
+    ctx.fill();
+  }
+  
+  // breathing: bigger amplitude (4px), organic
+  var breath = Math.sin(time * 0.8) * 3 + Math.sin(time * 0.5) * 1.5 + Math.sin(time * 1.9) * 0.5;
+  
+  ctx.beginPath();
+  for(var i = 0; i <= n; i++){
+    var a = (i / n) * Math.PI * 2;
+    var r = baseR + breath;
+    
+    // per-vertex organic wobble
+    r += Math.sin(a * 3 + time * 0.6) * 0.4 + Math.sin(a * 7 + time * 1.1) * 0.2;
+    
+    var px = cx + Math.cos(a) * r;
+    var py = cy + Math.sin(a) * r;
+    
+    // memory: deformation from past visitors
+    for(var t = 0; t < traces.length; t++){
+      var tr = traces[t];
+      var dx = px - tr.x, dy = py - tr.y;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      var mem = (1 - tr.age) * tr.w * 600 / (dist*dist + 300);
+      px += (tr.x - px) * mem * 0.004;
+      py += (tr.y - py) * mem * 0.004;
+    }
+    
+    if(near){
+      var dx = px - mouseX, dy = py - mouseY;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      var force = weight * 2500 / (dist*dist + 60);
+      
+      if(weight < 1.5){
+        // light: reaches toward you, opens
+        px += (mouseX - px) * force * 0.02;
+        py += (mouseY - py) * force * 0.02;
+      } else if(weight < 3){
+        // medium: thickens on nearest side, tepal response
+        var nx = Math.cos(a), ny = Math.sin(a);
+        var toward = ((mouseX-cx)*nx + (mouseY-cy)*ny);
+        if(toward > 0){
+          px += nx * force * 0.7;
+          py += ny * force * 0.7;
+        }
+        // slight lean toward
+        px += (mouseX - px) * force * 0.003;
+        py += (mouseY - py) * force * 0.003;
+      } else {
+        // heavy: protects center, swells outward everywhere
+        var nx = Math.cos(a), ny = Math.sin(a);
+        px += nx * force * 0.6;
+        py += ny * force * 0.6;
+        // nearest point dips inward (defense indent)
+        var dot = ((mouseX-cx)*Math.cos(a) + (mouseY-cy)*Math.sin(a));
+        if(dot > 0){
+          var indent = force * 0.012;
+          px -= (mouseX - px) * indent;
+          py -= (mouseY - py) * indent;
+        }
+      }
+    }
+    
+    if(i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  
+  // color: warm during inhale, cool during exhale
+  var warmPhase = (Math.sin(time * 0.8) + 1) / 2; // 0 to 1
+  var rr = Math.floor(36 + warmPhase * 12);
+  var gg = Math.floor(34 + warmPhase * 6);
+  var bb = Math.floor(32 + warmPhase * 2);
+  ctx.strokeStyle = 'rgb(' + rr + ',' + gg + ',' + bb + ')';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  
+  // visitor point
+  if(near){
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 2 + weight * 0.8, 0, Math.PI*2);
+    var c = weight < 1.5 ? 'rgba(90,130,110,0.35)' : 
+            weight < 3 ? 'rgba(130,110,70,0.4)' : 'rgba(150,70,70,0.5)';
+    ctx.fillStyle = c;
+    ctx.fill();
+  }
+  
+  // subtle weight indicator
+  if(near){
+    ctx.fillStyle = '#ddd';
+    ctx.font = '9px monospace';
+    ctx.fillText(weight.toFixed(1), 8, H-6);
+  }
+  
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
