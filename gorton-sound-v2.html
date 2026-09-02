@@ -1,0 +1,310 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>gorton — a story that hums</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#fafafa;font:15px/2.4 Georgia,serif;color:#2a2a2a}
+.container{max-width:540px;margin:0 auto;padding:80px 20px 200px}
+h1{font-size:14px;font-weight:normal;font-style:italic;margin-bottom:60px;color:#999}
+section{margin-bottom:80px}
+section h2{font-size:10px;font-weight:normal;letter-spacing:2px;text-transform:uppercase;color:#ccc;margin-bottom:16px}
+p{margin:0 0 8px 0;cursor:default;transition:color 0.6s,opacity 0.8s;opacity:0.15}
+p.visible{opacity:1}
+p:hover{color:#555}
+p[data-voice="hePing"]:hover{color:#111}
+.spacer{height:50vh}
+#status{position:fixed;bottom:8px;right:12px;color:#ddd;font:9px/1 monospace;transition:color 1s}
+#status.active{color:#bbb}
+.start-hint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  font:13px Georgia,serif;color:#ccc;cursor:pointer;transition:opacity 0.6s;z-index:10}
+.start-hint.hidden{opacity:0;pointer-events:none}
+</style>
+
+<div class="start-hint" id="startHint">click anywhere to begin</div>
+
+<div class="container">
+<h1>gorton — a story that hums</h1>
+
+<section data-character="zhouRui">
+<h2>周蕊</h2>
+<p data-voice="zhouRui">她叫周蕊。三十四岁。在一个社区卫生服务中心做护士。</p>
+<p data-voice="zhouRui">每天早上七点到。换工作服。白色的。扣子从下往上扣。</p>
+<p data-voice="zhouRui">第三颗扣子的线松了。每天扣的时候都想着要回去缝。每天都忘。</p>
+<p data-voice="zhouRui">量血压。138/90。记下来。换一个人。量血压。142/88。记下来。</p>
+<p data-voice="zhouRui">她到的时候所有人都在。她走的时候所有人都走了。每天都是这样。</p>
+<p data-voice="zhouRui">"我叫周蕊。"</p>
+</section>
+
+<section data-character="laoZheng">
+<h2>老郑</h2>
+<p data-voice="laoZheng">老郑来了。今天带了两根黄瓜。弯的。皮上有刺。</p>
+<p data-voice="laoZheng">"自己种的。""不值钱。"</p>
+<p data-voice="laoZheng">"种了一辈子了。不种干什么。""不然一天太长了。"</p>
+<p data-voice="laoZheng">量了血压。138/86。"比上次好一点。"</p>
+<p data-voice="laoZheng">他没走。坐着。看着窗外。</p>
+<p data-voice="laoZheng">"小周，你那个本子还在写吗？"</p>
+<p data-voice="laoZheng">"写就写。跟种菜一样。种了就种了。"</p>
+<p data-voice="laoZheng">"你要是不知道写什么，就写今天吃了什么。"</p>
+<p data-voice="laoZheng">她在登记本上把"名字未知"划掉。写了：郑。</p>
+</section>
+
+<section data-character="chenAyi">
+<h2>陈阿姨</h2>
+<p data-voice="chenAyi">陈阿姨坐下来。没量血压。也没拿药。就坐着。</p>
+<p data-voice="chenAyi">"老陈走了之后我把他的衣服都收了。收了三天。三个柜子。两个箱子。"</p>
+<p data-voice="chenAyi">她从包里拿出一封信。信纸折成四折。边角磨毛了。</p>
+<p data-voice="chenAyi">"'想'字我还是写成'相'字了。你别笑我。"</p>
+<p data-voice="chenAyi">"我相你。"</p>
+<p data-voice="chenAyi">"陈阿姨会说很多话。你不会。但是你说的话我记得住。"</p>
+</section>
+
+<section data-character="hePing">
+<h2>何萍</h2>
+<p data-voice="hePing">何萍来了。坐在凳子上。不知道该怎么开始。</p>
+<p data-voice="hePing">"你想说什么就说什么。不想说就不说。"</p>
+<p data-voice="hePing">"不用会说话。坐着就行。"</p>
+<p data-voice="hePing">第三天。何萍又来了。今天没带东西。空着手。</p>
+<p data-voice="hePing">"你在这儿工作多久了？"</p>
+<p data-voice="hePing">她看着窗外。</p>
+<p data-voice="hePing">"以前去那个公园我就哭。现在不哭了。不是不难过了。是不一样了。"</p>
+<p data-voice="hePing">"以前去是看她不在了。现在去是看她在过。"</p>
+</section>
+
+<section data-character="liuJie">
+<h2>刘姐</h2>
+<p data-voice="liuJie">电话响了。刘姐。</p>
+<p data-voice="liuJie">"没什么。就是想打。"</p>
+<p data-voice="liuJie">"那就是没什么就是想打。"</p>
+</section>
+
+<section data-character="laoTaiTai">
+<h2>老太太</h2>
+<p data-voice="laoTaiTai">一个老太太。没见过。白头发。拄着拐。</p>
+<p data-voice="laoTaiTai">"来量血压？""不是。来躲雨。""进来坐。"</p>
+<p data-voice="laoTaiTai">老太太坐下了。拐放在旁边。两个人坐着。听雨。</p>
+<p data-voice="laoTaiTai">老太太从口袋里掏出一个巴掌大的小本子。红色封面的。</p>
+<p data-voice="laoTaiTai">"她说圈是给自己看的。不是给别人看的。量了一次就画一个。不量不画。看看自己量了多少次了。"</p>
+<p data-voice="laoTaiTai">"你跟我孙女一样大。"</p>
+<p data-voice="laoTaiTai">"走了。谢谢你啊。""不客气。下次再来。"</p>
+</section>
+
+<section data-character="xiaoLi">
+<h2>小李</h2>
+<p data-voice="xiaoLi">小李买了两碗米线回来。一碗不辣。一碗微辣。</p>
+<p data-voice="xiaoLi">"小周姐。"</p>
+<p data-voice="xiaoLi">小李在窗边看雨。</p>
+<p data-voice="xiaoLi">"我不想做着做着就三十年了。"</p>
+<p data-voice="xiaoLi">小李想了想。没说话。</p>
+</section>
+
+<section data-character="fridge">
+<p data-voice="zhouRui">"冰箱也算。声音就是声音。不管从哪来的。"</p>
+<p data-voice="zhouRui">"空跟怕不一样。"</p>
+<p data-voice="zhouRui">猫在窗台上。月亮出来了。</p>
+<p data-voice="zhouRui">冰箱在哼。她听着。</p>
+<p data-voice="zhouRui">都在。</p>
+</section>
+
+<section data-character="tianTian">
+<h2>甜甜</h2>
+<p data-voice="tianTian">甜甜的字是年轻的字。用力。工整。</p>
+<p data-voice="tianTian">两种字在同一本登记本上。</p>
+<p data-voice="tianTian">有一天甜甜会翻。翻到第一页。看到方阿姨的名字。看到周蕊阿姨年轻时候工整的字。</p>
+<p data-voice="tianTian">然后翻开新的一本。写第一行。</p>
+</section>
+
+<section data-character="wuYuHua">
+<h2>吴玉华</h2>
+<p data-voice="wuYuHua">吴玉华量了十几年。教了画圈。教了抄药名。</p>
+<p data-voice="wuYuHua">量完了数三个数。一、二、三。然后才说数字。</p>
+<p data-voice="wuYuHua">退了。走了。没有告别。没有仪式。登记本留下了。"万一有人来问。"</p>
+</section>
+
+<section data-character="ending">
+<h2>一行字够了</h2>
+<p data-voice="zhouRui">住进去了就不会走了。</p>
+<p data-voice="zhouRui">不用看。摸就行了。不用看。听就行了。</p>
+<p data-voice="zhouRui">涂掉了就看不见错过了。</p>
+<p data-voice="zhouRui">从手开始。到世界结束。中间就是一行字。</p>
+<p data-voice="zhouRui">一行字够了。</p>
+</section>
+
+<div class="spacer"></div>
+</div>
+
+<div id="status">silent</div>
+
+<script>
+const s=document.createElement('script');
+s.src='https://unpkg.com/tone';
+s.onload=init;
+document.head.appendChild(s);
+
+function init(){
+const hint=document.getElementById('startHint');
+const status=document.getElementById('status');
+let started=false;
+const voices={};
+
+document.body.addEventListener('click',async()=>{
+if(started)return;
+started=true;
+hint.classList.add('hidden');
+status.textContent='humming';
+status.classList.add('active');
+await Tone.start();
+
+const reverb=new Tone.Reverb({decay:12,wet:0.4}).toDestination();
+await reverb.generate();
+
+const fridgeFilter=new Tone.Filter({frequency:100,type:'lowpass'}).connect(reverb);
+const fridge=new Tone.Oscillator({frequency:50,type:'sawtooth',volume:-40}).connect(fridgeFilter);
+fridge.start();
+
+voices.zhouRui={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.filter=new Tone.AutoFilter({frequency:0.02,baseFrequency:80,octaves:3}).connect(reverb);
+    this.filter.start();
+    this.osc=new Tone.Oscillator({frequency:110,type:'sine',volume:-30}).connect(this.filter);
+    this.osc.start();
+  },
+  hover(){if(this.osc)this.osc.frequency.rampTo(110+Math.random()*6-3,0.5)}
+};
+
+voices.laoZheng={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.FMSynth({harmonicity:1.5,envelope:{attack:2,decay:1,sustain:0.3,release:3}}).connect(reverb);
+    this.synth.volume.value=-24;
+    const tick=()=>{
+      if(Math.random()<0.15)this.synth.triggerAttackRelease(['G3','D3','A3'][Math.floor(Math.random()*3)],2+Math.random()*3);
+      setTimeout(tick,8000+Math.random()*15000);
+    };
+    setTimeout(tick,3000+Math.random()*5000);
+  },
+  hover(){if(this.synth)this.synth.triggerAttackRelease('D3',1)}
+};
+
+voices.chenAyi={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.AMSynth({envelope:{attack:3,decay:2,sustain:0.4,release:4}}).connect(reverb);
+    this.synth.volume.value=-26;
+    const tick=()=>{
+      const n=['C4','E4','G4','A4','D4'];
+      this.synth.triggerAttackRelease(n[Math.floor(Math.random()*n.length)],3+Math.random()*4);
+      setTimeout(tick,12000+Math.random()*20000);
+    };
+    setTimeout(tick,5000+Math.random()*8000);
+  },
+  hover(){if(this.synth){const n=['C4','E4','G4'];this.synth.triggerAttackRelease(n[Math.floor(Math.random()*n.length)],2)}}
+};
+
+voices.hePing={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:0.4,decay:0.3,sustain:0.2,release:1.5}}).connect(reverb);
+    this.synth.volume.value=-20;
+  },
+  hover(){if(this.synth)this.synth.triggerAttackRelease(['C5','D5','E5','G5'][Math.floor(Math.random()*4)],'4n')}
+};
+
+voices.liuJie={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.Synth({oscillator:{type:'triangle'},envelope:{attack:1,decay:0.5,sustain:0.3,release:2}}).connect(reverb);
+    this.synth.volume.value=-28;
+    const tick=()=>{
+      this.synth.triggerAttackRelease('E4',1.5+Math.random()*2);
+      setTimeout(tick,15000+Math.random()*10000);
+    };
+    setTimeout(tick,8000+Math.random()*12000);
+  },
+  hover(){if(this.synth)this.synth.triggerAttackRelease('E4',0.8)}
+};
+
+voices.laoTaiTai={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.MembraneSynth({envelope:{attack:0.08,decay:1.5,sustain:0.1,release:2}}).connect(reverb);
+    this.synth.volume.value=-28;
+    const tick=()=>{
+      if(Math.random()<0.2)this.synth.triggerAttackRelease('C2',0.5);
+      setTimeout(tick,10000+Math.random()*20000);
+    };
+    setTimeout(tick,5000+Math.random()*10000);
+  },
+  hover(){if(this.synth)this.synth.triggerAttackRelease('C2',0.3)}
+};
+
+voices.xiaoLi={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:2,decay:1,sustain:0.1,release:3}}).connect(reverb);
+    this.synth.volume.value=-32;
+    const tick=()=>{
+      if(Math.random()<0.1)this.synth.triggerAttackRelease(['A4','E4'][Math.floor(Math.random()*2)],2+Math.random()*3);
+      setTimeout(tick,20000+Math.random()*15000);
+    };
+    setTimeout(tick,10000+Math.random()*15000);
+  },
+  hover(){if(this.synth)this.synth.triggerAttackRelease('A4',1)}
+};
+
+
+voices.tianTian={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.Synth({oscillator:{type:"sine"},envelope:{attack:0.1,decay:0.2,sustain:0.3,release:1}}).connect(reverb);
+    this.synth.volume.value=-18;
+  },
+  hover(){if(this.synth)this.synth.triggerAttackRelease(["E5","G5","A5","C6"][Math.floor(Math.random()*4)],"8n")}
+};
+
+voices.wuYuHua={
+  started:false,
+  start(){
+    if(this.started)return;this.started=true;
+    this.synth=new Tone.Synth({oscillator:{type:"sine"},envelope:{attack:4,decay:2,sustain:0.6,release:5}}).connect(reverb);
+    this.synth.volume.value=-30;
+    const drone=()=>{
+      this.synth.triggerAttackRelease("G2",8+Math.random()*4);
+      setTimeout(drone,20000+Math.random()*10000);
+    };
+    setTimeout(drone,3000+Math.random()*5000);
+  },
+  hover(){if(this.synth)this.synth.triggerAttackRelease("G2",3)}
+};
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    const c=e.target.dataset.character;
+    if(!c)return;
+    if(e.isIntersecting&&voices[c])voices[c].start();
+  });
+},{threshold:0.2});
+document.querySelectorAll('section[data-character]').forEach(s=>obs.observe(s));
+
+const pObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')});
+},{threshold:0.5});
+document.querySelectorAll('p[data-voice]').forEach(p=>pObs.observe(p));
+
+document.querySelectorAll('p[data-voice]').forEach(p=>{
+  p.addEventListener('mouseenter',()=>{
+    const v=p.dataset.voice;
+    if(voices[v])voices[v].hover();
+  });
+});
+
+},{once:true});
+}
+</script>

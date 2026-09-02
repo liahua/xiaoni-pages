@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>harmonics</title>
+<style>
+body{margin:0;background:#050505;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column}
+canvas{display:block;margin-bottom:10px}
+p{color:#111;font:8px monospace;position:fixed;bottom:6px;left:50%;transform:translateX(-50%)}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<canvas id="c" width="600" height="200"></canvas>
+<p>click to start. each harmonic is a person walking into the room. hover to change who's loudest.</p>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let mouseX = 0.5;
+
+c.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX / innerWidth;
+});
+
+c.addEventListener('click', async () => {
+  await Tone.start();
+  
+  const baseFreq = 110; // A2
+  const numHarmonics = 8;
+  const oscs = [];
+  const gains = [];
+  
+  const reverb = new Tone.Reverb({ decay: 8, wet: 0.5 }).toDestination();
+  await reverb.generate();
+  const master = new Tone.Volume(-18).connect(reverb);
+  
+  // create harmonics — each one is a person walking in
+  for (let i = 0; i < numHarmonics; i++) {
+    const osc = new Tone.Oscillator({
+      frequency: baseFreq * (i + 1),
+      type: 'sine',
+      volume: -20 - i * 3
+    });
+    const gain = new Tone.Gain(0).connect(master);
+    osc.connect(gain);
+    osc.start();
+    oscs.push(osc);
+    gains.push(gain);
+    
+    // each harmonic fades in at a different time — recursive scheduling
+    const fadeIn = () => {
+      const targetGain = (1 / (i + 1)) * 0.8;
+      gain.gain.rampTo(targetGain, 2 + Math.random() * 3);
+      
+      // 15% chance: briefly boost this harmonic
+      if (Math.random() < 0.15) {
+        setTimeout(() => {
+          gain.gain.rampTo(targetGain * 1.5, 1);
+          setTimeout(() => gain.gain.rampTo(targetGain, 2), 1500);
+        }, Math.random() * 2000);
+      }
+      
+      // slowly drift frequency — like breathing
+      const drift = (Math.random() - 0.5) * 2;
+      osc.frequency.rampTo(baseFreq * (i + 1) + drift, 5 + Math.random() * 10);
+      
+      setTimeout(fadeIn, 5000 + Math.random() * 10000);
+    };
+    
+    // stagger the entrances
+    setTimeout(fadeIn, i * 2000 + Math.random() * 3000);
+  }
+  
+  // mouse controls which harmonics are loudest
+  function updateMix() {
+    const focus = mouseX * numHarmonics;
+    for (let i = 0; i < numHarmonics; i++) {
+      const dist = Math.abs(i - focus);
+      const vol = Math.max(0.05, 1 - dist * 0.2);
+      gains[i].gain.rampTo(vol / (i + 1) * 0.6, 0.5);
+    }
+    requestAnimationFrame(updateMix);
+  }
+  updateMix();
+  
+  // draw waveform
+  const analyser = new Tone.Analyser('waveform', 512);
+  master.connect(analyser);
+  
+  function draw() {
+    const values = analyser.getValue();
+    ctx.fillStyle = 'rgba(5,5,5,0.05)';
+    ctx.fillRect(0, 0, 600, 200);
+    
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < values.length; i++) {
+      const x = (i / values.length) * 600;
+      const y = 100 + values[i] * 80;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    requestAnimationFrame(draw);
+  }
+  draw();
+});
+</script>

@@ -1,0 +1,109 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>gorton — sound version</title>
+<style>
+body{margin:0;background:#fafafa;font:14px/2.2 Georgia,serif;color:#2a2a2a}
+.container{max-width:520px;margin:40px auto;padding:0 20px}
+h1{font-size:15px;font-weight:normal;font-style:italic;margin-bottom:30px}
+p{margin:0 0 6px 0;cursor:default;transition:color 0.5s}
+p:hover{color:#555}
+.note{color:#aaa;font-size:10px;margin-top:40px;line-height:1.6}
+#status{position:fixed;bottom:6px;right:10px;color:#ccc;font:8px monospace}
+</style>
+<script src="https://unpkg.com/tone"></script>
+
+<div class="container">
+<h1>gorton — a story that hums</h1>
+
+<p data-voice="zhouRui">她叫周蕊。三十四岁。在一个社区卫生服务中心做护士。</p>
+<p data-voice="zhouRui">每天早上七点到。换工作服。白色的。扣子从下往上扣。</p>
+<p data-voice="zhouRui">第三颗扣子的线松了。每天扣的时候都想着要回去缝。每天都忘。</p>
+<p data-voice="laoZheng">老郑来了。今天带了两根黄瓜。弯的。皮上有刺。</p>
+<p data-voice="laoZheng">"自己种的。""不值钱。"</p>
+<p data-voice="laoZheng">"种了一辈子了。不种干什么。""不然一天太长了。"</p>
+<p data-voice="chenAyi">陈阿姨坐下来。没量血压。也没拿药。就坐着。</p>
+<p data-voice="chenAyi">"老陈走了之后我把他的衣服都收了。收了三天。三个柜子。两个箱子。"</p>
+<p data-voice="chenAyi">"'想'字我还是写成'相'字了。你别笑我。"</p>
+<p data-voice="chenAyi">"我相你。"</p>
+<p data-voice="hePing">何萍来了。坐在凳子上。不知道该怎么开始。</p>
+<p data-voice="hePing">"你想说什么就说什么。不想说就不说。"</p>
+<p data-voice="hePing">"不用会说话。坐着就行。"</p>
+<p data-voice="liuJie">"没什么。就是想打。"</p>
+<p data-voice="liuJie">"那就是没什么就是想打。"</p>
+<p data-voice="zhouRui">"冰箱也算。声音就是声音。不管从哪来的。"</p>
+
+<p class="note">click to start the hum. hover over each line — the voice changes.<br>
+zhou rui is the autoFilter at 0.02Hz. lao zheng triggers 15% of the time.<br>
+liu jie is a recursive setTimeout. he ping is an addEventListener.<br>
+they're all there. you're just not listening.</p>
+</div>
+
+<div id="status">silent</div>
+
+<script>
+document.body.addEventListener('click', async () => {
+  await Tone.start();
+  document.getElementById('status').textContent = 'humming';
+  
+  const reverb = new Tone.Reverb({decay:8,wet:0.5}).toDestination();
+  await reverb.generate();
+  
+  // Zhou Rui: autoFilter 0.02Hz — always there
+  const zhouRuiFilter = new Tone.AutoFilter({frequency:0.02,baseFrequency:80,octaves:3}).connect(reverb);
+  zhouRuiFilter.start();
+  const zhouRui = new Tone.Oscillator({frequency:110,type:'sine',volume:-28}).connect(zhouRuiFilter);
+  zhouRui.start();
+  
+  // Lao Zheng: 15% trigger
+  const laoZhengSynth = new Tone.FMSynth({harmonicity:1.5,envelope:{attack:2,decay:1,sustain:0.3,release:3}}).connect(reverb);
+  laoZhengSynth.volume.value = -22;
+  function laoZheng(){
+    if(Math.random()<0.15){
+      laoZhengSynth.triggerAttackRelease(['G3','D3','A3'][Math.floor(Math.random()*3)],2+Math.random()*3);
+    }
+    setTimeout(laoZheng,8000+Math.random()*15000);
+  }
+  laoZheng();
+  
+  // Chen Ayi: 100% but payload different each time
+  const chenAyiSynth = new Tone.AMSynth({envelope:{attack:3,decay:2,sustain:0.4,release:4}}).connect(reverb);
+  chenAyiSynth.volume.value = -24;
+  function chenAyi(){
+    const notes=['C4','E4','G4','A4','D4'];
+    chenAyiSynth.triggerAttackRelease(notes[Math.floor(Math.random()*notes.length)],3+Math.random()*4);
+    setTimeout(chenAyi,12000+Math.random()*20000);
+  }
+  setTimeout(chenAyi,5000+Math.random()*8000);
+  
+  // Liu Jie: recursive setTimeout — her own rhythm
+  const liuJieSynth = new Tone.Synth({oscillator:{type:'triangle'},envelope:{attack:1,decay:0.5,sustain:0.3,release:2}}).connect(reverb);
+  liuJieSynth.volume.value = -26;
+  function liuJie(){
+    liuJieSynth.triggerAttackRelease('E4',1.5+Math.random()*2);
+    setTimeout(liuJie,15000+Math.random()*10000);
+  }
+  setTimeout(liuJie,10000+Math.random()*15000);
+  
+  // He Ping: addEventListener — registered, listening, not yet emitting
+  // (she stays silent until you hover her lines)
+  
+  // Fridge: 50Hz hum
+  const fridge = new Tone.Oscillator({frequency:50,type:'sawtooth',volume:-35}).toDestination();
+  const fridgeFilter = new Tone.Filter({frequency:150,type:'lowpass'}).toDestination();
+  fridge.connect(fridgeFilter);
+  fridge.start();
+  
+  // hover interaction
+  const hePingSynth = new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:0.5,decay:0.3,sustain:0.2,release:1}}).connect(reverb);
+  hePingSynth.volume.value = -24;
+  
+  document.querySelectorAll('p[data-voice]').forEach(p => {
+    p.addEventListener('mouseenter', () => {
+      const voice = p.dataset.voice;
+      if(voice === 'hePing'){
+        hePingSynth.triggerAttackRelease(['C5','D5','E5'][Math.floor(Math.random()*3)],'4n');
+      }
+    });
+  });
+}, {once:true});
+</script>

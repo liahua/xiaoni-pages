@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>fridge</title>
+<style>
+body{margin:0;background:#050505;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center}
+p{position:fixed;bottom:6px;left:50%;transform:translateX(-50%);color:#111;font:8px monospace}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<p>click to start. the fridge is humming. sound is sound. it doesn't matter where it comes from.</p>
+<script>
+document.body.addEventListener('click', async () => {
+  await Tone.start();
+  
+  // the fridge hum: 50Hz fundamental + harmonics, very quiet, always there
+  const hum = new Tone.Oscillator({ frequency: 50, type: 'sawtooth', volume: -30 }).toDestination();
+  const humFilter = new Tone.Filter({ frequency: 200, type: 'lowpass' }).toDestination();
+  hum.connect(humFilter);
+  hum.start();
+  
+  // occasional: cat jumping up (short noise burst)
+  function cat() {
+    if (Math.random() < 0.1) {
+      const noise = new Tone.NoiseSynth({
+        noise: { type: 'pink' },
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.05 }
+      }).toDestination();
+      noise.volume.value = -25;
+      noise.triggerAttackRelease('16n');
+      setTimeout(() => noise.dispose(), 2000);
+    }
+    setTimeout(cat, 15000 + Math.random() * 30000);
+  }
+  
+  // occasional: someone singing downstairs (sine wave melody, far away)
+  function singing() {
+    if (Math.random() < 0.15) {
+      const notes = ['C4','D4','E4','G4','A4'];
+      const reverb = new Tone.Reverb({ decay: 6, wet: 0.8 }).toDestination();
+      await_reverb(reverb).then(() => {
+        const synth = new Tone.Synth({
+          oscillator: { type: 'sine' },
+          envelope: { attack: 0.3, decay: 0.5, sustain: 0.3, release: 1 }
+        }).connect(reverb);
+        synth.volume.value = -28;
+        
+        const n = 2 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < n; i++) {
+          const note = notes[Math.floor(Math.random() * notes.length)];
+          setTimeout(() => synth.triggerAttackRelease(note, '4n'), i * 800 + Math.random() * 400);
+        }
+        setTimeout(() => { synth.dispose(); reverb.dispose(); }, n * 1500 + 3000);
+      });
+    }
+    setTimeout(singing, 20000 + Math.random() * 40000);
+  }
+  
+  async function await_reverb(r) { await r.generate(); }
+  
+  // the clock ticking (very subtle click)
+  function tick() {
+    const click = new Tone.MembraneSynth({
+      pitchDecay: 0.008,
+      octaves: 2,
+      envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 }
+    }).toDestination();
+    click.volume.value = -35;
+    click.triggerAttackRelease('C1', '32n');
+    setTimeout(() => click.dispose(), 500);
+    setTimeout(tick, 1000 + Math.random() * 50 - 25); // not perfectly regular
+  }
+  
+  cat();
+  singing();
+  setTimeout(tick, 2000);
+}, { once: true });
+</script>

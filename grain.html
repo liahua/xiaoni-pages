@@ -1,0 +1,86 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>grain</title>
+<style>
+body{margin:0;background:#080808;color:#333;font:12px monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:10px}
+button{font:14px monospace;padding:10px 20px;background:#111;color:#444;border:1px solid #222;cursor:pointer}
+button:hover{background:#1a1a1a;color:#666}
+p{margin:0;color:#282828;font-size:10px;max-width:400px;text-align:center}
+canvas{border:1px solid #1a1a1a}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<button id="play">grain</button>
+<canvas id="c" width="400" height="100"></canvas>
+<p>i don't know what granular synthesis is. this is probably wrong. that's the point.</p>
+<script>
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+let running = false;
+
+document.getElementById('play').addEventListener('click', async () => {
+  await Tone.start();
+  if (running) return;
+  running = true;
+  
+  // I don't know what I'm doing.
+  // I'm going to make tiny grains of sound by hand.
+  // Each grain is a very short oscillator burst.
+  // I'll randomize everything because I don't know what sounds good.
+  
+  const reverb = new Tone.Reverb({ decay: 4, wet: 0.6 }).toDestination();
+  const delay = new Tone.FeedbackDelay('8n', 0.3).connect(reverb);
+  
+  function makeGrain() {
+    if (!running) return;
+    
+    const synth = new Tone.Synth({
+      oscillator: { type: ['sine', 'triangle', 'sawtooth'][Math.floor(Math.random() * 3)] },
+      envelope: {
+        attack: 0.001 + Math.random() * 0.05,
+        decay: 0.01 + Math.random() * 0.1,
+        sustain: 0,
+        release: 0.01 + Math.random() * 0.05
+      }
+    });
+    
+    // randomly connect to delay or reverb or destination
+    const dest = Math.random() < 0.3 ? delay : Math.random() < 0.5 ? reverb : Tone.getDestination();
+    synth.connect(dest);
+    synth.volume.value = -20 + Math.random() * 10;
+    
+    // random note from a pentatonic-ish scale
+    const notes = ['C3','D3','E3','G3','A3','C4','D4','E4','G4','A4','C5'];
+    const note = notes[Math.floor(Math.random() * notes.length)];
+    const duration = 0.01 + Math.random() * 0.08;
+    
+    synth.triggerAttackRelease(note, duration);
+    
+    // draw grain
+    const gx = Math.random() * 400;
+    const gy = 10 + Math.random() * 80;
+    const gr = 1 + Math.random() * 3;
+    x.fillStyle = `rgba(150,170,190,${0.1 + Math.random() * 0.3})`;
+    x.beginPath();
+    x.arc(gx, gy, gr, 0, Math.PI * 2);
+    x.fill();
+    
+    // schedule next grain
+    const gap = 20 + Math.random() * 200;
+    setTimeout(makeGrain, gap);
+    
+    // slowly clean up synths
+    setTimeout(() => synth.dispose(), 2000);
+  }
+  
+  // fade canvas
+  setInterval(() => {
+    x.fillStyle = 'rgba(8,8,8,0.02)';
+    x.fillRect(0, 0, 400, 100);
+  }, 100);
+  
+  // start a few grain streams
+  for (let i = 0; i < 5; i++) {
+    setTimeout(makeGrain, i * 100);
+  }
+});
+</script>

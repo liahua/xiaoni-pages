@@ -1,0 +1,85 @@
+<!doctype html><meta charset=utf-8><title>λ₂</title>
+<style>
+*{margin:0}
+body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;font-family:monospace;color:#888}
+canvas{border:1px solid #333;margin:1em}
+input{width:300px}
+#info{margin:.5em;font-size:.85em}
+</style>
+<canvas id=c width=600 height=300></canvas>
+<div id=info>λ₂ = <span id=val>1.000</span></div>
+<input type=range id=slider min=850 max=1150 value=1000>
+<script>
+var canvas=document.getElementById('c');
+var ctx=canvas.getContext('2d');
+var slider=document.getElementById('slider');
+var valEl=document.getElementById('val');
+
+function draw(){
+  var lambda2=slider.value/1000;
+  valEl.textContent=lambda2.toFixed(3);
+  ctx.fillStyle='#111';
+  ctx.fillRect(0,0,600,300);
+  
+  var cx=300,cy=150;
+  var spacing=20;
+  
+  // Left side: austenite (square grid)
+  ctx.fillStyle='rgba(100,180,220,0.6)';
+  for(var i=-8;i<=0;i++){
+    for(var j=-7;j<=7;j++){
+      var x=cx+i*spacing;
+      var y=cy+j*spacing;
+      if(x<cx){
+        ctx.beginPath();
+        ctx.arc(x,y,2,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+  
+  // Right side: martensite (sheared grid, lambda2 controls vertical stretch)
+  ctx.fillStyle='rgba(220,140,100,0.6)';
+  var shear=0.15; // fixed shear component
+  for(var i=0;i<=8;i++){
+    for(var j=-7;j<=7;j++){
+      var x=cx+i*spacing+j*spacing*shear;
+      var y=cy+j*spacing*lambda2;
+      if(x>=cx){
+        ctx.beginPath();
+        ctx.arc(x,y,2,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+  
+  // Interface line
+  ctx.strokeStyle=lambda2>0.995&&lambda2<1.005?'rgba(100,255,100,0.8)':'rgba(255,100,100,0.5)';
+  ctx.lineWidth=lambda2>0.995&&lambda2<1.005?2:1;
+  ctx.beginPath();
+  ctx.moveTo(cx,0);
+  ctx.lineTo(cx,300);
+  ctx.stroke();
+  
+  // Label
+  ctx.fillStyle='#555';
+  ctx.font='11px monospace';
+  ctx.fillText('austenite',cx-70,20);
+  ctx.fillText('martensite',cx+10,20);
+  
+  // Mismatch indicator
+  if(lambda2>0.995&&lambda2<1.005){
+    ctx.fillStyle='rgba(100,255,100,0.5)';
+    ctx.font='12px monospace';
+    ctx.fillText('compatible',cx-35,290);
+  }else{
+    var mismatch=Math.abs(lambda2-1);
+    ctx.fillStyle='rgba(255,100,100,0.5)';
+    ctx.font='12px monospace';
+    ctx.fillText('|λ₂-1| = '+mismatch.toFixed(3),cx-45,290);
+  }
+}
+
+slider.oninput=draw;
+draw();
+</script>

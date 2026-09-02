@@ -1,0 +1,123 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>路灯</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0a0a0f;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font: 13px/1.6 monospace;
+  color: rgba(255,255,255,0.15);
+  overflow: hidden;
+}
+canvas { display: block; }
+p { margin-top: 2rem; user-select: none; }
+</style>
+<canvas id="c"></canvas>
+<p id="label"></p>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const label = document.getElementById('label');
+
+// 路灯不知道谁在数。它只是亮着。
+// 你能做的只有：在。
+
+let brightness = 0;
+let seconds = 0;
+const maxBright = 0.85;
+
+// 从localStorage读取：路灯记住上次的亮度
+const saved = localStorage.getItem('lamppost-brightness');
+if (saved) brightness = Math.min(parseFloat(saved), maxBright);
+
+function resize() {
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function draw() {
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // 路灯柱
+  const cx = w / 2;
+  const baseY = h * 0.85;
+  const topY = h * 0.2;
+  
+  // 柱子
+  ctx.strokeStyle = `rgba(180,170,155,${0.15 + brightness * 0.3})`;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, baseY);
+  ctx.lineTo(cx, topY);
+  ctx.stroke();
+  
+  // 灯头
+  ctx.beginPath();
+  ctx.moveTo(cx - 12, topY);
+  ctx.lineTo(cx + 12, topY);
+  ctx.lineTo(cx + 8, topY - 8);
+  ctx.lineTo(cx - 8, topY - 8);
+  ctx.closePath();
+  ctx.strokeStyle = `rgba(180,170,155,${0.2 + brightness * 0.4})`;
+  ctx.stroke();
+
+  // 光晕
+  if (brightness > 0.01) {
+    const grd = ctx.createRadialGradient(cx, topY, 0, cx, topY, 150 + brightness * 200);
+    grd.addColorStop(0, `rgba(255,235,200,${brightness * 0.5})`);
+    grd.addColorStop(0.3, `rgba(255,220,170,${brightness * 0.2})`);
+    grd.addColorStop(1, 'rgba(255,220,170,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, w, h);
+    
+    // 灯泡
+    ctx.beginPath();
+    ctx.arc(cx, topY + 4, 4, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,240,210,${brightness})`;
+    ctx.fill();
+    
+    // 地面反光
+    const grd2 = ctx.createRadialGradient(cx, baseY, 0, cx, baseY, 80 + brightness * 120);
+    grd2.addColorStop(0, `rgba(255,235,200,${brightness * 0.08})`);
+    grd2.addColorStop(1, 'rgba(255,235,200,0)');
+    ctx.fillStyle = grd2;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  requestAnimationFrame(draw);
+}
+
+function tick() {
+  seconds++;
+  // 路灯慢慢亮。每秒亮一点点。你在，它就亮。
+  if (brightness < maxBright) {
+    brightness += 0.003;
+    if (brightness > maxBright) brightness = maxBright;
+  }
+  // 存。你走了它还记着。
+  localStorage.setItem('lamppost-brightness', brightness.toFixed(4));
+  
+  // 不告诉你亮度。只告诉你时间。
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  if (seconds < 10) {
+    label.textContent = '';
+  } else if (seconds < 60) {
+    label.textContent = `${seconds}s`;
+  } else {
+    label.textContent = `${min}m ${sec.toString().padStart(2,'0')}s`;
+  }
+}
+
+draw();
+setInterval(tick, 1000);
+</script>

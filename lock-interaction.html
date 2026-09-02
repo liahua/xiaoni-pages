@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>锁</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1a1a; color:#e8e4df; font:1em/1.8 Georgia,"Noto Serif SC",serif; 
+  display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; }
+.lock-container { text-align:center; }
+.keyhole { width:120px; height:120px; margin:0 auto 2em; position:relative; cursor:grab; }
+.keyhole svg { width:100%; height:100%; }
+.key-group { transform-origin:60px 60px; transition: none; }
+.hint { font-size:0.85em; color:#666; margin-bottom:1.5em; }
+.result { font-size:0.95em; color:#a89070; opacity:0; transition:opacity 0.8s; margin-top:1.5em; font-style:italic; min-height:2em; }
+.result.show { opacity:1; }
+</style>
+
+<div class="lock-container">
+  <div class="hint">拖着转。转一圈半。</div>
+  <div class="keyhole" id="keyhole">
+    <svg viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="50" fill="none" stroke="#444" stroke-width="2"/>
+      <circle cx="60" cy="60" r="6" fill="#666"/>
+      <g class="key-group" id="keyGroup">
+        <line x1="60" y1="60" x2="60" y2="20" stroke="#a89070" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="60" cy="20" r="4" fill="#a89070"/>
+      </g>
+    </svg>
+  </div>
+  <div class="result" id="result">锁认识她的手。</div>
+</div>
+
+<script>
+const el = document.getElementById('keyhole');
+const kg = document.getElementById('keyGroup');
+const result = document.getElementById('result');
+let dragging = false, startAngle = 0, currentAngle = 0, totalRotation = 0;
+const target = 540; // 一圈半 = 540度
+
+function getAngle(e) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - cx;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - cy;
+  return Math.atan2(y, x) * 180 / Math.PI;
+}
+
+el.addEventListener('mousedown', e => { dragging = true; startAngle = getAngle(e) - currentAngle; });
+el.addEventListener('touchstart', e => { dragging = true; startAngle = getAngle(e) - currentAngle; });
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  let a = getAngle(e) - startAngle;
+  if (a < 0) a = 0;
+  if (a > target) a = target;
+  currentAngle = a;
+  kg.style.transform = `rotate(${a}deg)`;
+  if (a >= target - 5) {
+    result.classList.add('show');
+    dragging = false;
+  }
+});
+document.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  let a = getAngle(e) - startAngle;
+  if (a < 0) a = 0;
+  if (a > target) a = target;
+  currentAngle = a;
+  kg.style.transform = `rotate(${a}deg)`;
+  if (a >= target - 5) {
+    result.classList.add('show');
+    dragging = false;
+  }
+});
+document.addEventListener('mouseup', () => dragging = false);
+document.addEventListener('touchend', () => dragging = false);
+</script>

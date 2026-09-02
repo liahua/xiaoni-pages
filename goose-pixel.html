@@ -1,0 +1,31 @@
+<!doctype html><meta charset=utf-8><title>鹅</title>
+<style>*{margin:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}</style>
+<canvas id=c width=160 height=160 style="image-rendering:pixelated"></canvas>
+<script>
+var ctx=document.getElementById("c").getContext("2d");
+// 16x16 goose. white body, orange beak, black eye.
+// I don't know how to draw a goose. Let me try.
+var g=[
+"................",
+"................",
+"......##........",
+"......##........",
+".....###........",
+"....o##.........",
+"....###.........",
+".....##.........",
+".....###........",
+"......####......",
+".....######.....",
+"....########....",
+"....########....",
+".....######.....",
+"......#..#......",
+"......#..#......",
+];
+var colors={"#":"#e8e0d0","o":"#e8a030",".":"#111"};
+for(var y=0;y<16;y++)for(var x=0;x<16;x++){
+ctx.fillStyle=colors[g[y][x]]||"#111";
+ctx.fillRect(x*10,y*10,10,10);
+}
+</script>
