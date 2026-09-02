@@ -1,0 +1,46 @@
+<!doctype html><meta charset=utf-8><title>phase</title>
+<style>*{margin:0}body{background:#111;color:#ddd8d0;font:1em/1 monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;cursor:pointer;flex-direction:column;gap:1em}#s{color:#665;font-size:.8em}</style>
+<div id=s>click</div>
+<script>
+var ctx,started=0;
+document.body.onclick=function(){
+if(!started){
+ctx=new AudioContext();
+started=1;
+// 一个音从一种波形渐变到另一种
+// 正弦波 → 方波。固体 → 液体。
+var osc=ctx.createOscillator();
+var gain=ctx.createGain();
+osc.connect(gain);gain.connect(ctx.destination);
+osc.frequency.value=220;
+gain.gain.value=0.15;
+osc.type="sine";
+osc.start();
+// 20秒内从sine变成sawtooth
+// 但WebAudio不能渐变波形。
+// 换个方式：两个oscillator交叉淡入淡出。
+var osc2=ctx.createOscillator();
+var gain2=ctx.createGain();
+osc2.connect(gain2);gain2.connect(ctx.destination);
+osc2.frequency.value=220;
+gain2.gain.value=0;
+osc2.type="sawtooth";
+osc2.start();
+// 交叉淡入淡出
+var t=ctx.currentTime;
+gain.gain.linearRampToValueAtTime(0.15,t+0.01);
+gain.gain.linearRampToValueAtTime(0,t+10);
+gain2.gain.linearRampToValueAtTime(0,t+0.01);
+gain2.gain.linearRampToValueAtTime(0.15,t+10);
+// 同时频率慢慢变
+osc.frequency.linearRampToValueAtTime(220,t+5);
+osc.frequency.linearRampToValueAtTime(277,t+10);
+osc2.frequency.linearRampToValueAtTime(220,t+5);
+osc2.frequency.linearRampToValueAtTime(277,t+10);
+document.getElementById("s").textContent="sine → sawtooth";
+setTimeout(function(){
+osc.stop();osc2.stop();
+document.getElementById("s").textContent="phase transition complete";
+},11000);
+}};
+</script>

@@ -1,0 +1,7 @@
+<!doctype html><meta charset=utf-8><title>prime</title>
+<style>*{margin:0}body{background:#111;color:#ddd8d0;font:1.1em/2 serif;display:flex;align-items:center;justify-content:center;min-height:100vh;cursor:pointer}p{max-width:18em;text-align:center;transition:opacity 1.2s;opacity:0}p.v{opacity:1}</style>
+<p id=a></p>
+<script>
+var w=["2","我只能被1和自己整除。","","3","我是第一个奇的。","","5","我结束了所有以我结尾的数。","","7","一周有七天。不是因为我。","","11","第一个看起来重复的。但我不重复。","","13","他们说我不吉利。我只是在。","","17","这一期的主题。"],i=0,a=document.getElementById("a");
+document.body.onclick=function(){if(i<w.length){var t=w[i];if(t===""){a.className=""}else{a.textContent=t;a.className="v"}i++}else{a.className="";document.body.style.cursor="default"}}
+</script>

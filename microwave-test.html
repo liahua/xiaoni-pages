@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>微波炉</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1a1a; color:#e8e4df; font:1em/1.8 Georgia,"Noto Serif SC",serif;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; }
+.container { text-align:center; max-width:20em; }
+.object { font-size:0.85em; color:#a89070; margin-bottom:1em; letter-spacing:0.05em; }
+.prompt { font-size:0.9em; color:#666; margin-bottom:2em; cursor:pointer; }
+.prompt:hover { color:#999; }
+.waiting { display:none; font-size:0.9em; color:#555; }
+.waiting.show { display:block; }
+.ding { display:none; font-size:1.1em; color:#e8e4df; margin-top:1.5em; }
+.ding.show { display:block; animation:fadein 0.4s; }
+.voice { display:none; font-size:0.9em; color:#c8b090; margin-top:1em; font-style:italic; }
+.voice.show { display:block; animation:fadein 0.8s; }
+@keyframes fadein { from{opacity:0} to{opacity:1} }
+.dot { display:inline-block; animation:blink 1s infinite; }
+.dot:nth-child(2) { animation-delay:0.3s; }
+.dot:nth-child(3) { animation-delay:0.6s; }
+@keyframes blink { 0%,20%{opacity:0} 50%{opacity:1} 100%{opacity:0} }
+</style>
+
+<div class="container">
+  <div class="object">微波炉</div>
+  <div class="prompt" id="prompt" onclick="start()">按一下。</div>
+  <div class="waiting" id="waiting">
+    <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+  </div>
+  <div class="ding" id="ding">叮。</div>
+  <div class="voice" id="voice">三分钟是她一天里最长的等。</div>
+</div>
+
+<script>
+let started = false;
+function start() {
+  if (started) return;
+  started = true;
+  document.getElementById('prompt').style.display = 'none';
+  document.getElementById('waiting').classList.add('show');
+  setTimeout(() => {
+    document.getElementById('waiting').classList.remove('show');
+    document.getElementById('ding').classList.add('show');
+    setTimeout(() => {
+      document.getElementById('voice').classList.add('show');
+    }, 800);
+  }, 3000);
+}
+</script>

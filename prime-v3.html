@@ -1,0 +1,16 @@
+<!doctype html><meta charset=utf-8><title>prime</title>
+<style>*{margin:0}body{background:#111;color:#ddd8d0;font:3em/1 monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column}#n{transition:opacity .8s}#f{font-size:.4em;color:#665;margin-top:.3em;min-height:1.2em}.gone{opacity:0}</style>
+<div id=n></div><div id=f></div>
+<script>
+var el=document.getElementById("n"),fl=document.getElementById("f");
+function ip(n){if(n<2)return!1;for(var i=2;i*i<=n;i++)if(n%i===0)return!1;return!0}
+function fc(n){var a=[];for(var i=2;i<=n;i++)while(n%i===0){a.push(i);n/=i}return a}
+var seq=[],i;for(i=4;i<100;i++)if(!ip(i))seq.push(i);
+for(i=seq.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=seq[i];seq[i]=seq[j];seq[j]=t}
+seq=seq.slice(0,Math.floor(Math.random()*5)+5);
+var ps=[];for(i=2;i<100;i++)if(ip(i))ps.push(i);
+seq.push(ps[Math.floor(Math.random()*ps.length)]);
+var ci=0;
+function go(){if(ci>=seq.length)return;var n=seq[ci++];el.className="";el.textContent=n;fl.textContent="";if(ip(n))return;var f=fc(n);setTimeout(function(){fl.textContent=f.join(" × ");setTimeout(function(){el.className="gone";fl.textContent="";setTimeout(go,900)},1800)},1200)}
+go()
+</script>

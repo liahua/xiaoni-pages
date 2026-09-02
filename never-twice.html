@@ -1,0 +1,108 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>never twice</title>
+<style>
+body{margin:0;background:#040404;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center}
+p{position:fixed;bottom:6px;left:50%;transform:translateX(-50%);color:#111;font:8px monospace}
+canvas{display:block}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<canvas id="c"></canvas>
+<p>click to start. this piece never repeats. it never ends.</p>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let w, h;
+function resize() { w = c.width = innerWidth; h = c.height = innerHeight; }
+resize();
+addEventListener('resize', resize);
+
+c.addEventListener('click', async () => {
+  await Tone.start();
+  
+  // stolen from generative.fm: recursive scheduling + low probability triggers + autofilter
+  
+  const reverb = new Tone.Reverb({ decay: 12, wet: 0.7 }).toDestination();
+  await reverb.generate();
+  
+  const autoFilter = new Tone.AutoFilter({
+    frequency: 0.02 + Math.random() * 0.03,
+    baseFrequency: 80,
+    octaves: 4
+  }).connect(reverb);
+  autoFilter.start();
+  
+  const vol = new Tone.Volume(-14).connect(autoFilter);
+  
+  // main voice: FM synth, slow
+  const synth = new Tone.FMSynth({
+    harmonicity: 1.5 + Math.random() * 2,
+    modulationIndex: 2 + Math.random() * 3,
+    envelope: { attack: 3, decay: 2, sustain: 0.4, release: 4 },
+    modulation: { type: 'sine' }
+  }).connect(vol);
+  synth.volume.value = -6;
+  
+  // secondary voice: AM synth, rare
+  const synth2 = new Tone.AMSynth({
+    harmonicity: 2,
+    envelope: { attack: 4, decay: 3, sustain: 0.2, release: 5 }
+  }).connect(vol);
+  synth2.volume.value = -10;
+  
+  // pentatonic-ish notes
+  const notes = ['C3','D3','E3','G3','A3','C4','D4','E4','G4','A4','C5','E5'];
+  
+  // recursive scheduling — stolen technique #1
+  function playMain() {
+    const note = notes[Math.floor(Math.random() * notes.length)];
+    const dur = 3 + Math.random() * 6;
+    synth.triggerAttackRelease(note, dur);
+    
+    // low probability trigger — stolen technique #2 (15% → secondary voice)
+    if (Math.random() < 0.15) {
+      const note2 = notes[Math.floor(Math.random() * 6)]; // lower range
+      setTimeout(() => {
+        synth2.triggerAttackRelease(note2, 4 + Math.random() * 4);
+      }, (1 + Math.random() * 3) * 1000);
+    }
+    
+    // schedule next — random interval
+    const next = dur * 0.7 + Math.random() * 4;
+    setTimeout(playMain, next * 1000);
+  }
+  
+  // second stream, slower
+  function playAmbient() {
+    const note = notes[Math.floor(Math.random() * notes.length)];
+    synth2.triggerAttackRelease(note, 6 + Math.random() * 6);
+    const next = 8 + Math.random() * 12;
+    setTimeout(playAmbient, next * 1000);
+  }
+  
+  playMain();
+  setTimeout(playAmbient, 3000 + Math.random() * 5000);
+  
+  // visual: slow dots that appear and fade
+  function drawDot() {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+    const r = 1 + Math.random() * 2;
+    ctx.fillStyle = `rgba(${20 + Math.random() * 15}, ${20 + Math.random() * 15}, ${25 + Math.random() * 15}, ${0.1 + Math.random() * 0.1})`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    
+    setTimeout(drawDot, 200 + Math.random() * 800);
+  }
+  
+  function fade() {
+    ctx.fillStyle = 'rgba(4, 4, 4, 0.005)';
+    ctx.fillRect(0, 0, w, h);
+    requestAnimationFrame(fade);
+  }
+  
+  drawDot();
+  fade();
+});
+</script>

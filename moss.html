@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title></title>
+<style>
+body { margin:0; background:#0a0a08; overflow:hidden; cursor:crosshair; }
+canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// 先画黑。
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let W, H;
+function resize() { W = c.width = innerWidth; H = c.height = innerHeight; }
+resize();
+addEventListener('resize', resize);
+
+// 世界是黑的石头。你碰过的地方会长苔藓。
+// 苔藓不在你碰的时候长。在你走了之后长。
+// 长得慢。颜色从灰变绿变深。
+// 长到一定程度会开一朵很小的花。然后花掉了。苔藓还在。
+
+let seeds = []; // {x, y, born, touched}
+
+addEventListener('mousemove', e => {
+  // 每隔一点距离种一颗种子
+  if (Math.random() < 0.3) {
+    seeds.push({
+      x: e.clientX + (Math.random()-0.5)*8,
+      y: e.clientY + (Math.random()-0.5)*8,
+      born: Date.now(),
+      touched: Date.now(),
+      size: 0,
+      hue: 80 + Math.random()*40, // yellow-green range
+      bloom: false,
+      bloomTime: 0,
+      bloomDone: false
+    });
+  }
+  // mark nearby seeds as recently touched
+  for (let s of seeds) {
+    let dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (dx*dx+dy*dy < 2500) s.touched = Date.now();
+  }
+});
+
+// touch support
+addEventListener('touchmove', e => {
+  let t = e.touches[0];
+  if (Math.random() < 0.4) {
+    seeds.push({
+      x: t.clientX + (Math.random()-0.5)*10,
+      y: t.clientY + (Math.random()-0.5)*10,
+      born: Date.now(),
+      touched: Date.now(),
+      size: 0,
+      hue: 80 + Math.random()*40,
+      bloom: false,
+      bloomTime: 0,
+      bloomDone: false
+    });
+  }
+  for (let s of seeds) {
+    let dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (dx*dx+dy*dy < 2500) s.touched = Date.now();
+  }
+}, {passive:true});
+
+function draw() {
+  // don't clear. let it accumulate.
+  // but darken very slightly to keep the black alive
+  ctx.fillStyle = 'rgba(10,10,8,0.005)';
+  ctx.fillRect(0, 0, W, H);
+  
+  let now = Date.now();
+  
+  for (let i = seeds.length - 1; i >= 0; i--) {
+    let s = seeds[i];
+    let age = (now - s.born) / 1000; // seconds
+    let sinceTouched = (now - s.touched) / 1000;
+    
+    // grow only when NOT being touched (sinceTouched > 1s)
+    if (sinceTouched > 1) {
+      let growRate = 0.002 * Math.min(1, sinceTouched / 10);
+      s.size = Math.min(4, s.size + growRate);
+    }
+    
+    if (s.size < 0.3) continue;
+    
+    // color: starts grey, becomes green as it grows
+    let greenness = Math.min(1, s.size / 3);
+    let r = Math.floor(30 + 20 * (1-greenness));
+    let g = Math.floor(30 + 60 * greenness);
+    let b = Math.floor(20 + 10 * (1-greenness));
+    let alpha = Math.min(0.7, s.size * 0.2);
+    
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+    ctx.fill();
+    
+    // bloom: when size > 3 and hasn't bloomed yet
+    if (s.size > 3 && !s.bloom && !s.bloomDone && Math.random() < 0.001) {
+      s.bloom = true;
+      s.bloomTime = now;
+    }
+    
+    if (s.bloom) {
+      let bloomAge = (now - s.bloomTime) / 1000;
+      if (bloomAge < 8) {
+        // tiny flower
+        let bloomAlpha = bloomAge < 2 ? bloomAge/2 : Math.max(0, 1 - (bloomAge-2)/6);
+        let bloomSize = 1.5 + Math.sin(bloomAge*0.5) * 0.5;
+        ctx.fillStyle = `rgba(200,180,220,${bloomAlpha * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y - s.size - 1, bloomSize, 0, Math.PI*2);
+        ctx.fill();
+      } else {
+        s.bloom = false;
+        s.bloomDone = true;
+      }
+    }
+    
+    // cap seeds
+    if (seeds.length > 3000) {
+      seeds.splice(0, 500);
+    }
+  }
+  
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>

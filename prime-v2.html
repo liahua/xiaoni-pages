@@ -1,0 +1,10 @@
+<!doctype html><meta charset=utf-8><title>prime</title>
+<style>*{margin:0;box-sizing:border-box}body{background:#111;color:#ddd8d0;font:2em/1 monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:.5em}input{background:none;border:none;border-bottom:1px solid #555;color:#ddd8d0;font:inherit;text-align:center;width:4em;outline:none}#r{opacity:0;transition:opacity .6s;min-height:1.2em}</style>
+<input id=n type=text maxlength=6 autofocus>
+<div id=r></div>
+<script>
+function p(n){if(n<2)return false;for(var i=2;i*i<=n;i++)if(n%i===0)return false;return true}
+var el=document.getElementById("n"),r=document.getElementById("r");
+el.addEventListener("input",function(){var v=parseInt(el.value);r.style.opacity="0";if(isNaN(v))return;setTimeout(function(){r.textContent=p(v)?"prime":v+"="+f(v);r.style.opacity="1"},300)});
+function f(n){var a=[];for(var i=2;i<=n;i++)while(n%i===0){a.push(i);n/=i}return a.join("×")}
+</script>

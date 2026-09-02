@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>弹子锁截面</title>
+<style>
+body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; }
+canvas { border: 1px solid #333; }
+</style>
+</head>
+<body>
+<canvas id="c" width="600" height="400"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+// 锁壳
+ctx.fillStyle = '#4a4a5a';
+ctx.fillRect(100, 80, 400, 240);
+
+// 锁芯（圆柱截面 - 简化为矩形）
+ctx.fillStyle = '#6a6a7a';
+ctx.fillRect(120, 160, 360, 80);
+
+// 钥匙槽
+ctx.fillStyle = '#1a1a2e';
+ctx.fillRect(120, 190, 360, 20);
+
+// 剪切线（截点）标注
+ctx.strokeStyle = '#ff6b6b';
+ctx.setLineDash([5, 5]);
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(100, 160);
+ctx.lineTo(500, 160);
+ctx.stroke();
+ctx.setLineDash([]);
+
+// 画五个弹子
+const pins = [
+  { x: 180, keyLen: 40, driverLen: 30 },  // 齿浅
+  { x: 240, keyLen: 55, driverLen: 30 },  // 齿深
+  { x: 300, keyLen: 35, driverLen: 30 },  // 齿浅
+  { x: 360, keyLen: 50, driverLen: 30 },  // 齿中
+  { x: 420, keyLen: 45, driverLen: 30 },  // 齿中
+];
+
+pins.forEach(p => {
+  const pinW = 16;
+  const holeX = p.x - pinW/2;
+  
+  // 弹子孔（贯穿锁壳和锁芯）
+  ctx.fillStyle = '#2a2a3e';
+  ctx.fillRect(holeX, 80, pinW, 160);
+  
+  // 弹簧（在最上面）
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth = 1.5;
+  const springTop = 85;
+  const springBot = 160 - p.keyLen - p.driverLen;
+  for (let y = springTop; y < springBot; y += 6) {
+    ctx.beginPath();
+    ctx.moveTo(holeX + 2, y);
+    ctx.lineTo(holeX + pinW - 2, y + 3);
+    ctx.lineTo(holeX + 2, y + 6);
+    ctx.stroke();
+  }
+  
+  // 上弹子（driver pin）- 蓝色
+  const driverTop = 160 - p.keyLen - p.driverLen;
+  ctx.fillStyle = '#4ecdc4';
+  ctx.fillRect(holeX + 1, driverTop, pinW - 2, p.driverLen);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(holeX + 1, driverTop, pinW - 2, p.driverLen);
+  
+  // 下弹子（key pin）- 橙色
+  const keyTop = 160 - p.keyLen;
+  ctx.fillStyle = '#ff9f43';
+  ctx.fillRect(holeX + 1, keyTop, pinW - 2, p.keyLen);
+  ctx.strokeStyle = '#333';
+  ctx.strokeRect(holeX + 1, keyTop, pinW - 2, p.keyLen);
+});
+
+// 标注文字
+ctx.fillStyle = '#fff';
+ctx.font = '12px sans-serif';
+ctx.fillText('锁壳', 105, 100);
+ctx.fillText('锁芯', 105, 210);
+ctx.fillText('钥匙槽', 105, 205);
+
+ctx.fillStyle = '#ff6b6b';
+ctx.fillText('← 截点（剪切线）', 505, 163);
+
+ctx.fillStyle = '#4ecdc4';
+ctx.fillText('■ 上弹子', 105, 340);
+ctx.fillStyle = '#ff9f43';
+ctx.fillText('■ 下弹子', 200, 340);
+ctx.fillStyle = '#aaa';
+ctx.fillText('∿ 弹簧', 295, 340);
+
+ctx.fillStyle = '#888';
+ctx.font = '11px sans-serif';
+ctx.fillText('没有钥匙时：上弹子横跨截点，卡住锁芯', 105, 365);
+ctx.fillText('正确钥匙：推下弹子→上下弹子交界对齐截点→锁芯转动', 105, 380);
+</script>
+</body>
+</html>
