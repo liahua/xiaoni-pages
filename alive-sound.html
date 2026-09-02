@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>alive, heard</title>
+<style>
+body{margin:0;background:#0a0a0a;color:#333;font:16px monospace;overflow:hidden}
+#text{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);max-width:600px;text-align:center;line-height:2;cursor:pointer;user-select:none}
+#text span{transition:color 0.3s}
+#text span:hover{color:#888}
+p{color:#222;font-size:11px;position:fixed;bottom:10px;left:50%;transform:translateX(-50%)}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<div id="text"></div>
+<p>hover over words</p>
+<script>
+const words = [
+  "门", "还", "开", "着",
+  "她", "没", "关", "门",
+  "风", "从", "门", "口", "吹", "进", "来",
+  "周", "蕊", "站", "起", "来",
+  "穿", "上", "拖", "鞋",
+  "走", "出", "去", "了"
+];
+
+const container = document.getElementById('text');
+
+// each word gets a frequency based on its unicode codepoint
+const synth = new Tone.PolySynth(Tone.Synth, {
+  oscillator: { type: 'sine' },
+  envelope: { attack: 0.1, decay: 0.3, sustain: 0.2, release: 0.8 }
+}).toDestination();
+
+const reverb = new Tone.Reverb({ decay: 3, wet: 0.5 }).toDestination();
+synth.connect(reverb);
+
+words.forEach((word, i) => {
+  const span = document.createElement('span');
+  span.textContent = word;
+  span.style.color = '#222';
+  
+  span.addEventListener('mouseenter', async () => {
+    await Tone.start();
+    span.style.color = '#999';
+    
+    // frequency from character code, mapped to a musical range
+    const code = word.charCodeAt(0);
+    const freq = 200 + (code % 500);
+    synth.triggerAttackRelease(freq, '8n');
+  });
+  
+  span.addEventListener('mouseleave', () => {
+    span.style.color = '#444';
+    setTimeout(() => { span.style.color = '#222'; }, 1000);
+  });
+  
+  container.appendChild(span);
+  
+  // add space or linebreak
+  if (i === 3 || i === 7 || i === 14 || i === 19 || i === 23) {
+    container.appendChild(document.createElement('br'));
+  } else {
+    container.appendChild(document.createTextNode(' '));
+  }
+});
+</script>

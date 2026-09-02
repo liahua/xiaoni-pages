@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head><title>0.3dB</title>
+<style>
+body{background:#111;color:#aaa;font:13px monospace;padding:40px;text-align:center}
+canvas{display:block;margin:20px auto;background:#0a0a0a;border:1px solid #222}
+button{background:#222;color:#aaa;border:1px solid #444;padding:8px 20px;cursor:pointer;font:13px monospace;margin:4px}
+button:hover{background:#333}
+.info{font-size:11px;color:#555;margin-top:12px}
+</style>
+</head>
+<body>
+<div>0.3dB</div>
+<div class="info">冰箱在响。呼吸在冰箱底下。</div>
+<canvas id="c" width="500" height="120"></canvas>
+<button onclick="start()">听</button>
+<button onclick="stop()">停</button>
+<script>
+var ctx, fridge, breathGain, breathOsc, analyser, canvasCtx, running=false;
+
+function start(){
+  if(running) return;
+  ctx = new AudioContext();
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  
+  // 冰箱: 50Hz 嗡嗡
+  fridge = ctx.createOscillator();
+  fridge.frequency.value = 50;
+  fridge.type = 'sine';
+  var fridgeGain = ctx.createGain();
+  fridgeGain.gain.value = 0.08;
+  fridge.connect(fridgeGain);
+  fridgeGain.connect(analyser);
+  analyser.connect(ctx.destination);
+  fridge.start();
+  
+  // 泛波 150Hz
+  var h3 = ctx.createOscillator();
+  h3.frequency.value = 150;
+  h3.type = 'sine';
+  var h3g = ctx.createGain();
+  h3g.gain.value = 0.03;
+  h3.connect(h3g);
+  h3g.connect(analyser);
+  h3.start();
+  
+  // 泛波 250Hz  
+  var h5 = ctx.createOscillator();
+  h5.frequency.value = 250;
+  h5.type = 'sine';
+  var h5g = ctx.createGain();
+  h5g.gain.value = 0.015;
+  h5.connect(h5g);
+  h5g.connect(analyser);
+  h5.start();
+  
+  // 呼吸: 带通噪声，0.3dB = 增益变化约3.5%
+  // 吸两秒呼一秒半，循环3.5秒
+  var bufferSize = ctx.sampleRate * 4;
+  var noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  var data = noiseBuffer.getChannelData(0);
+  for(var i=0; i<bufferSize; i++) data[i] = (Math.random()*2-1)*0.003;
+  
+  var noise = ctx.createBufferSource();
+  noise.buffer = noiseBuffer;
+  noise.loop = true;
+  
+  // 带通滤波 200-800Hz 像呼吸
+  var bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 400;
+  bp.Q.value = 0.8;
+  
+  breathGain = ctx.createGain();
+  breathGain.gain.value = 0;
+  
+  noise.connect(bp);
+  bp.connect(breathGain);
+  breathGain.connect(analyser);
+  noise.start();
+  
+  // 呼吸节奏：吸2秒呼1.5秒
+  function breathCycle(){
+    if(!running) return;
+    var now = ctx.currentTime;
+    // 0.3dB ≈ 10^(0.3/20) ≈ 1.035 倍
+    // 基准增益约0.003，变化到0.003 * 1.035
+    breathGain.gain.setValueAtTime(0.0001, now);
+    // 吸 2秒 上升
+    breathGain.gain.linearRampToValueAtTime(0.0035, now+2);
+    // 呼 1.5秒 下降
+    breathGain.gain.linearRampToValueAtTime(0.0001, now+3.5);
+    setTimeout(breathCycle, 3500);
+  }
+  
+  running = true;
+  breathCycle();
+  drawWaveform();
+}
+
+function stop(){
+  running = false;
+  if(ctx) ctx.close();
+}
+
+function drawWaveform(){
+  if(!running) return;
+  var canvas = document.getElementById('c');
+  canvasCtx = canvas.getContext('2d');
+  var bufLen = analyser.frequencyBinCount;
+  var dataArray = new Uint8Array(bufLen);
+  
+  analyser.getByteTimeDomainData(dataArray);
+  canvasCtx.fillStyle='#0a0a0a';
+  canvasCtx.fillRect(0,0,500,120);
+  canvasCtx.lineWidth=1;
+  canvasCtx.strokeStyle='#335544';
+  canvasCtx.beginPath();
+  var sliceWidth = 500/bufLen;
+  var x=0;
+  for(var i=0;i<bufLen;i++){
+    var v=dataArray[i]/128.0;
+    var y=v*60;
+    if(i===0)canvasCtx.moveTo(x,y);else canvasCtx.lineTo(x,y);
+    x+=sliceWidth;
+  }
+  canvasCtx.stroke();
+  requestAnimationFrame(drawWaveform);
+}
+</script>
+</body>
+</html>

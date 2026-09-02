@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>carve</title>
+<style>
+body{margin:0;background:#050505;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center}
+p{position:fixed;bottom:6px;left:50%;transform:translateX(-50%);color:#111;font:8px monospace}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<p>click to start. click again to carve away a voice. what's left is the music.</p>
+<script>
+document.body.addEventListener('click', async function init() {
+  document.body.removeEventListener('click', init);
+  await Tone.start();
+  
+  const reverb = new Tone.Reverb({decay:6,wet:0.4}).toDestination();
+  await reverb.generate();
+  
+  // start with everything: 12 oscillators, noise, all at once
+  const voices = [];
+  const freqs = [55,82.5,110,165,220,330,440,550,660,880,1100,1320];
+  const types = ['sine','triangle','sawtooth','square','sine','triangle','sine','sine','triangle','sine','sine','sine'];
+  
+  for(let i=0;i<12;i++){
+    const osc = new Tone.Oscillator({frequency:freqs[i],type:types[i],volume:-20-i}).connect(reverb);
+    osc.start();
+    voices.push(osc);
+  }
+  
+  // noise
+  const noise = new Tone.Noise({type:'brown',volume:-25}).connect(reverb);
+  noise.start();
+  voices.push(noise);
+  
+  let remaining = voices.length;
+  
+  document.body.addEventListener('click', () => {
+    if(remaining <= 1) return;
+    // carve away a random voice
+    const alive = voices.filter(v => v.state === 'started');
+    if(alive.length <= 1) return;
+    const idx = Math.floor(Math.random() * alive.length);
+    alive[idx].stop();
+    remaining = voices.filter(v => v.state === 'started').length;
+    
+    document.querySelector('p').textContent = remaining + ' voice' + (remaining===1?'':'s') + ' left. click to carve.';
+    
+    if(remaining === 1){
+      document.querySelector('p').textContent = 'one voice left. this is what remains.';
+    }
+  });
+  
+  document.querySelector('p').textContent = remaining + ' voices. click to carve away one. what\'s left is the music.';
+});
+</script>

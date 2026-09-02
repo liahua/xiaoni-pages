@@ -1,0 +1,82 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>canvas listens</title>
+<style>
+body{margin:0;background:#060606;overflow:hidden}
+canvas{display:block}
+p{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);color:#181818;font:9px monospace;margin:0}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<canvas id="c"></canvas>
+<p>the canvas is listening to itself. click to start.</p>
+<script>
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+let w, h;
+function resize() { w = c.width = innerWidth; h = c.height = innerHeight; }
+resize();
+addEventListener('resize', resize);
+
+let started = false;
+
+c.addEventListener('click', async () => {
+  if (started) return;
+  started = true;
+  await Tone.start();
+  
+  const synth = new Tone.AMSynth({
+    harmonicity: 2,
+    envelope: { attack: 0.5, decay: 1, sustain: 0.3, release: 2 }
+  }).toDestination();
+  synth.volume.value = -18;
+  
+  const reverb = new Tone.Reverb({ decay: 6, wet: 0.6 }).toDestination();
+  synth.connect(reverb);
+  
+  // the canvas generates its own image data
+  // and reads it back as sound parameters
+  
+  let frame = 0;
+  function tick() {
+    frame++;
+    
+    // draw something slowly
+    const px = (frame * 7.3) % w;
+    const py = (frame * 3.1) % h;
+    x.fillStyle = `rgba(${40 + (frame % 30)}, ${50 + (frame % 20)}, ${60 + (frame % 25)}, 0.03)`;
+    x.fillRect(px - 2, py - 2, 4, 4);
+    
+    // every 30 frames, read a pixel and play it
+    if (frame % 30 === 0) {
+      const sx = Math.floor(Math.random() * w);
+      const sy = Math.floor(Math.random() * h);
+      const pixel = x.getImageData(sx, sy, 1, 1).data;
+      
+      const r = pixel[0];
+      const g = pixel[1]; 
+      const b = pixel[2];
+      const a = pixel[3];
+      
+      if (a > 5) {
+        // pixel color → note
+        const freq = 100 + r * 3 + g * 2;
+        const dur = 0.1 + (b / 255) * 0.5;
+        synth.triggerAttackRelease(freq, dur);
+        
+        // mark the read pixel
+        x.fillStyle = `rgba(255,255,255,0.1)`;
+        x.fillRect(sx - 1, sy - 1, 2, 2);
+      }
+    }
+    
+    // slow fade
+    if (frame % 60 === 0) {
+      x.fillStyle = 'rgba(6,6,6,0.01)';
+      x.fillRect(0, 0, w, h);
+    }
+    
+    requestAnimationFrame(tick);
+  }
+  tick();
+});
+</script>
