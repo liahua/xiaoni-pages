@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>first sound</title>
+<style>
+body{margin:0;background:#111;color:#ddd;font:16px monospace;display:flex;align-items:center;justify-content:center;height:100vh}
+button{font:20px monospace;padding:20px 40px;background:#222;color:#ddd;border:1px solid #444;cursor:pointer}
+button:hover{background:#333}
+</style>
+<button id="play">play</button>
+<script>
+document.getElementById('play').addEventListener('click', () => {
+  const ctx = new AudioContext();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.type = 'sine';
+  osc.frequency.value = 440; // A4
+  gain.gain.value = 0.3;
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  
+  osc.start();
+  
+  // fade out over 2 seconds
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+  osc.stop(ctx.currentTime + 2);
+});
+</script>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>滤波器实验室</title>
+<style>
+body { background: #111; color: #eee; font-family: monospace; padding: 20px; }
+.control { margin: 12px 0; }
+label { display: inline-block; width: 120px; }
+input[type=range] { width: 300px; vertical-align: middle; }
+.value { display: inline-block; width: 80px; text-align: right; }
+button { background: #333; color: #eee; border: 1px solid #555; padding: 8px 16px; cursor: pointer; margin: 4px; }
+button:hover { background: #444; }
+button.active { background: #558; border-color: #88a; }
+h2 { color: #aaa; margin-top: 24px; }
+#waveform { display: block; margin-top: 16px; }
+</style>
+</head>
+<body>
+<h1>滤波器实验室</h1>
+<p>一个音源 + 一个 BiquadFilter。调参数，听差别。</p>
+
+<h2>音源</h2>
+<div>
+  <button id="btn-sine" onclick="setWave('sine')">sine</button>
+  <button id="btn-square" onclick="setWave('square')">square</button>
+  <button id="btn-sawtooth" onclick="setWave('sawtooth')">sawtooth</button>
+  <button id="btn-triangle" onclick="setWave('triangle')">triangle</button>
+</div>
+<div class="control">
+  <label>频率 (Hz)</label>
+  <input type="range" id="freq" min="40" max="2000" value="220" oninput="updateFreq()">
+  <span class="value" id="freq-val">220</span>
+</div>
+
+<h2>BiquadFilter</h2>
+<div>
+  <button onclick="setFilterType('lowpass')">lowpass</button>
+  <button onclick="setFilterType('highpass')">highpass</button>
+  <button onclick="setFilterType('bandpass')">bandpass</button>
+  <button onclick="setFilterType('notch')">notch</button>
+  <button onclick="setFilterType('peaking')">peaking</button>
+</div>
+<div id="filter-type-display" style="margin:8px 0;color:#8af;">当前: lowpass</div>
+<div class="control">
+  <label>截止频率</label>
+  <input type="range" id="cutoff" min="20" max="8000" value="1000" oninput="updateFilter()">
+  <span class="value" id="cutoff-val">1000</span>
+</div>
+<div class="control">
+  <label>Q 值</label>
+  <input type="range" id="q" min="0.1" max="30" value="1" step="0.1" oninput="updateFilter()">
+  <span class="value" id="q-val">1.0</span>
+</div>
+<div class="control">
+  <label>增益 (dB)</label>
+  <input type="range" id="gain" min="-40" max="40" value="0" oninput="updateFilter()">
+  <span class="value" id="gain-val">0</span>
+</div>
+<div class="control">
+  <label>音量</label>
+  <input type="range" id="volume" min="0" max="0.5" value="0.15" step="0.01" oninput="updateVolume()">
+  <span class="value" id="vol-val">0.15</span>
+</div>
+
+<div style="margin-top:20px;">
+  <button id="btn-play" onclick="togglePlay()" style="font-size:16px;padding:10px 24px;">▶ 开始</button>
+</div>
+
+<canvas id="waveform" width="600" height="150"></canvas>
+
+<script>
+let ctx, osc, filter, gainNode, analyser;
+let playing = false;
+let currentWave = 'sawtooth';
+let currentFilterType = 'lowpass';
+
+function initAudio() {
+  ctx = new AudioContext();
+  osc = ctx.createOscillator();
+  filter = ctx.createBiquadFilter();
+  gainNode = ctx.createGain();
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+
+  osc.type = currentWave;
+  osc.frequency.value = 220;
+
+  filter.type = currentFilterType;
+  filter.frequency.value = 1000;
+  filter.Q.value = 1;
+  filter.gain.value = 0;
+
+  gainNode.gain.value = 0.15;
+
+  osc.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(analyser);
+  analyser.connect(ctx.destination);
+
+  osc.start();
+  drawWaveform();
+}
+
+function togglePlay() {
+  if (!playing) {
+    initAudio();
+    playing = true;
+    document.getElementById('btn-play').textContent = '⏹ 停止';
+    document.getElementById('btn-play').classList.add('active');
+  } else {
+    osc.stop();
+    ctx.close();
+    playing = false;
+    document.getElementById('btn-play').textContent = '▶ 开始';
+    document.getElementById('btn-play').classList.remove('active');
+  }
+}
+
+function setWave(type) {
+  currentWave = type;
+  if (playing) osc.type = type;
+  document.querySelectorAll('[id^=btn-]').forEach(b => {
+    if (b.id.startsWith('btn-sine') || b.id.startsWith('btn-square') || b.id.startsWith('btn-saw') || b.id.startsWith('btn-tri')) {
+      b.classList.remove('active');
+    }
+  });
+  document.getElementById('btn-' + type).classList.add('active');
+}
+
+function setFilterType(type) {
+  currentFilterType = type;
+  if (playing) filter.type = type;
+  document.getElementById('filter-type-display').textContent = '当前: ' + type;
+}
+
+function updateFreq() {
+  let v = document.getElementById('freq').value;
+  document.getElementById('freq-val').textContent = v;
+  if (playing) osc.frequency.value = v;
+}
+
+function updateFilter() {
+  let c = document.getElementById('cutoff').value;
+  let q = document.getElementById('q').value;
+  let g = document.getElementById('gain').value;
+  document.getElementById('cutoff-val').textContent = c;
+  document.getElementById('q-val').textContent = parseFloat(q).toFixed(1);
+  document.getElementById('gain-val').textContent = g;
+  if (playing) {
+    filter.frequency.value = c;
+    filter.Q.value = q;
+    filter.gain.value = g;
+  }
+}
+
+function updateVolume() {
+  let v = document.getElementById('volume').value;
+  document.getElementById('vol-val').textContent = parseFloat(v).toFixed(2);
+  if (playing) gainNode.gain.value = v;
+}
+
+function drawWaveform() {
+  if (!playing) return;
+  const canvas = document.getElementById('waveform');
+  const canvasCtx = canvas.getContext('2d');
+  const bufLen = analyser.frequencyBinCount;
+  const data = new Uint8Array(bufLen);
+
+  function draw() {
+    if (!playing) return;
+    requestAnimationFrame(draw);
+    analyser.getByteTimeDomainData(data);
+    canvasCtx.fillStyle = '#111';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    canvasCtx.lineWidth = 1.5;
+    canvasCtx.strokeStyle = '#4af';
+    canvasCtx.beginPath();
+    const sliceWidth = canvas.width / bufLen;
+    let x = 0;
+    for (let i = 0; i < bufLen; i++) {
+      const v = data[i] / 128.0;
+      const y = v * canvas.height / 2;
+      if (i === 0) canvasCtx.moveTo(x, y);
+      else canvasCtx.lineTo(x, y);
+      x += sliceWidth;
+    }
+    canvasCtx.lineTo(canvas.width, canvas.height / 2);
+    canvasCtx.stroke();
+  }
+  draw();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ConvolverNode Test — 58Hz in a Room</title>
+<style>
+body { background: #111; color: #aaa; font-family: monospace; padding: 40px; }
+button { font-size: 16px; padding: 8px 16px; margin: 8px; cursor: pointer; }
+#status { margin-top: 20px; white-space: pre-wrap; }
+select { font-size: 14px; padding: 4px; }
+</style>
+</head>
+<body>
+<h2>58Hz in a Room</h2>
+<p>
+IR: <select id="ir-select">
+  <option value="Small Drum Room.wav">Small Drum Room</option>
+  <option value="Nice Drum Room.wav">Nice Drum Room</option>
+  <option value="Highly Damped Large Room.wav">Highly Damped Large Room</option>
+  <option value="Narrow Bumpy Space.wav">Narrow Bumpy Space</option>
+</select>
+</p>
+<p>
+  <label>Dry/Wet: <input type="range" id="mix" min="0" max="1" step="0.01" value="0.5"></label>
+  <span id="mix-val">0.5</span>
+</p>
+<button id="btn-start">Start</button>
+<button id="btn-stop" disabled>Stop</button>
+<div id="status"></div>
+
+<script>
+let ctx, osc, dryGain, wetGain, convolver;
+
+const log = (s) => { document.getElementById('status').textContent += s + '\n'; };
+
+document.getElementById('mix').oninput = function() {
+  const v = parseFloat(this.value);
+  document.getElementById('mix-val').textContent = v.toFixed(2);
+  if (dryGain) dryGain.gain.value = 1 - v;
+  if (wetGain) wetGain.gain.value = v;
+};
+
+async function loadIR(url) {
+  log('Loading IR: ' + url);
+  const resp = await fetch(url);
+  const buf = await resp.arrayBuffer();
+  const audioBuf = await ctx.decodeAudioData(buf);
+  log('IR loaded: ' + audioBuf.duration.toFixed(2) + 's, ' + audioBuf.sampleRate + 'Hz, ' + audioBuf.numberOfChannels + 'ch');
+  return audioBuf;
+}
+
+document.getElementById('btn-start').onclick = async function() {
+  ctx = new AudioContext();
+  
+  // 58Hz oscillator — fridge fundamental
+  osc = ctx.createOscillator();
+  osc.type = 'sawtooth'; // richer than sine, more fridge-like harmonics
+  osc.frequency.value = 58;
+  
+  // Convolver
+  convolver = ctx.createConvolver();
+  const irFile = document.getElementById('ir-select').value;
+  convolver.buffer = await loadIR(irFile);
+  
+  // Dry/wet mix
+  dryGain = ctx.createGain();
+  wetGain = ctx.createGain();
+  const mix = parseFloat(document.getElementById('mix').value);
+  dryGain.gain.value = 1 - mix;
+  wetGain.gain.value = mix;
+  
+  // Master gain (quiet)
+  const master = ctx.createGain();
+  master.gain.value = 0.15;
+  
+  // Routing: osc → dry → master → out
+  //          osc → convolver → wet → master → out
+  osc.connect(dryGain);
+  dryGain.connect(master);
+  
+  osc.connect(convolver);
+  convolver.connect(wetGain);
+  wetGain.connect(master);
+  
+  master.connect(ctx.destination);
+  
+  osc.start();
+  log('Playing 58Hz through ' + irFile);
+  
+  this.disabled = true;
+  document.getElementById('btn-stop').disabled = false;
+};
+
+document.getElementById('btn-stop').onclick = function() {
+  if (osc) osc.stop();
+  if (ctx) ctx.close();
+  log('Stopped.');
+  document.getElementById('btn-start').disabled = false;
+  this.disabled = true;
+};
+</script>
+</body>
+</html>

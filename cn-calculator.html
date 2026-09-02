@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>C/N ratio calculator</title>
+<style>
+body { background: #111; color: #ccc; font-family: Georgia, serif; max-width: 480px; margin: 60px auto; padding: 0 20px; line-height: 1.8; font-size: 15px; }
+h1 { font-size: 18px; color: #888; }
+label { display: block; margin-top: 1em; }
+input, select { background: #222; color: #ccc; border: 1px solid #444; padding: 6px 10px; font-size: 14px; width: 100%; box-sizing: border-box; }
+button { margin-top: 1.5em; padding: 8px 20px; background: #333; color: #ccc; border: 1px solid #555; cursor: pointer; font-size: 14px; }
+button:hover { background: #444; }
+#result { margin-top: 1.5em; padding: 1em; border: 1px solid #333; min-height: 2em; }
+.material { border-bottom: 1px solid #222; padding: 0.8em 0; }
+.remove { color: #666; cursor: pointer; font-size: 12px; float: right; }
+</style>
+</head>
+<body>
+<h1>compost C/N calculator</h1>
+<p>add materials. see the mix.</p>
+
+<div id="materials"></div>
+
+<label>material
+<select id="mat-select">
+<option value="6">bone meal / meat scraps / chicken manure (~6:1)</option>
+<option value="12">vegetables / garden weeds / horse manure (~12:1)</option>
+<option value="20">coffee grounds (~20:1)</option>
+<option value="25" selected>summer grass / fruit waste / good hay (~25:1)</option>
+<option value="50">dry corn stalks / straw (~50:1)</option>
+<option value="80">dry leaves (~80:1)</option>
+<option value="100">sawdust / paper / tree bark (~100:1)</option>
+</select>
+</label>
+
+<label>weight (any unit)
+<input type="number" id="mat-weight" value="10" min="0.1" step="0.1">
+</label>
+
+<button onclick="addMaterial()">add</button>
+
+<div id="result"></div>
+
+<script>
+let items = [];
+
+function addMaterial() {
+  const cn = parseFloat(document.getElementById('mat-select').value);
+  const w = parseFloat(document.getElementById('mat-weight').value);
+  const name = document.getElementById('mat-select').selectedOptions[0].text;
+  if (!w || w <= 0) return;
+  items.push({ name, cn, w });
+  render();
+}
+
+function remove(i) {
+  items.splice(i, 1);
+  render();
+}
+
+function render() {
+  // materials list
+  let html = '';
+  items.forEach((it, i) => {
+    html += '<div class="material"><span class="remove" onclick="remove('+i+')">✕</span>' +
+      it.w + ' × ' + it.name + '</div>';
+  });
+  document.getElementById('materials').innerHTML = html;
+
+  // calculate
+  if (items.length === 0) {
+    document.getElementById('result').innerHTML = '';
+    return;
+  }
+
+  let totalW = 0, totalN = 0, totalC = 0;
+  items.forEach(it => {
+    totalW += it.w;
+    const n = it.w / (it.cn + 1); // approx N
+    const c = it.w - n; // approx C
+    totalN += n;
+    totalC += c;
+  });
+
+  const ratio = totalC / totalN;
+  let verdict = '';
+  if (ratio < 15) verdict = 'too much nitrogen. will smell like ammonia. add browns (leaves, sawdust, straw).';
+  else if (ratio < 20) verdict = 'nitrogen-heavy. might lose some N as ammonia. add a bit more carbon.';
+  else if (ratio <= 30) verdict = 'good range. should heat up and decompose well.';
+  else if (ratio <= 50) verdict = 'carbon-heavy. will decompose slowly. add greens (kitchen scraps, manure, grass).';
+  else verdict = 'very high carbon. will barely decompose. needs much more nitrogen.';
+
+  document.getElementById('result').innerHTML =
+    '<strong>mix C/N ≈ ' + ratio.toFixed(1) + ':1</strong><br>' +
+    'total weight: ' + totalW.toFixed(1) + '<br>' +
+    'approx N: ' + totalN.toFixed(2) + '<br>' +
+    'approx C: ' + totalC.toFixed(1) + '<br><br>' +
+    verdict;
+}
+</script>
+</body>
+</html>

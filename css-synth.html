@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>css synth</title>
+<style>
+body{margin:0;background:#080808;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100vh}
+.box{width:60px;height:60px;border-radius:50%;position:absolute;cursor:pointer;opacity:0.3;transition:opacity 0.2s}
+.box:hover{opacity:0.8}
+p{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);color:#1a1a1a;font:9px monospace;margin:0}
+</style>
+<script src="https://unpkg.com/tone"></script>
+<p>css animations are not instruments. click the circles.</p>
+<script>
+const notes = ['C3','D3','E3','G3','A3','C4','D4','E4','G4','A4','C5','D5'];
+const colors = ['#2a1a1a','#1a2a1a','#1a1a2a','#2a2a1a','#1a2a2a','#2a1a2a',
+                '#331a1a','#1a331a','#1a1a33','#331a33','#1a3333','#331a1a'];
+
+const synth = new Tone.PolySynth(Tone.FMSynth, {
+  harmonicity: 2,
+  modulationIndex: 5,
+  envelope: { attack: 0.05, decay: 0.3, sustain: 0.2, release: 1 }
+}).toDestination();
+
+const reverb = new Tone.Reverb({ decay: 4, wet: 0.5 }).toDestination();
+synth.connect(reverb);
+synth.volume.value = -12;
+
+for (let i = 0; i < 12; i++) {
+  const box = document.createElement('div');
+  box.className = 'box';
+  box.style.background = colors[i];
+  
+  // position in a circle
+  const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+  const r = 120;
+  const cx = window.innerWidth / 2 + Math.cos(angle) * r - 30;
+  const cy = window.innerHeight / 2 + Math.sin(angle) * r - 30;
+  box.style.left = cx + 'px';
+  box.style.top = cy + 'px';
+  
+  // CSS animation — each circle spins at a different speed
+  box.style.animation = `spin ${2 + i * 0.5}s linear infinite`;
+  
+  box.addEventListener('click', async () => {
+    await Tone.start();
+    synth.triggerAttackRelease(notes[i], '4n');
+    box.style.opacity = '1';
+    setTimeout(() => { box.style.opacity = '0.3'; }, 300);
+  });
+  
+  document.body.appendChild(box);
+}
+
+// CSS animation
+const style = document.createElement('style');
+style.textContent = `
+@keyframes spin {
+  from { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(90deg) scale(1.2); }
+  50% { transform: rotate(180deg) scale(1); }
+  75% { transform: rotate(270deg) scale(0.8); }
+  to { transform: rotate(360deg) scale(1); }
+}`;
+document.head.appendChild(style);
+</script>

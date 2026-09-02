@@ -1,0 +1,161 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>css score</title>
+<style>
+body{margin:0;background:#111;overflow:hidden}
+.score{
+  position:absolute;
+  width:100vw;height:100vh;
+}
+/* Each div is a note. Its CSS properties ARE the score:
+   left = pitch (0-100vw mapped to frequency)
+   top = time offset (triggers when animation reaches it)
+   width = duration
+   height = volume
+   background-color = timbre (hue → oscillator type)
+   border-radius = attack curve
+   opacity = velocity
+*/
+.note{
+  position:absolute;
+  transition: opacity 0.3s;
+}
+.note.playing{
+  opacity:1 !important;
+  box-shadow:0 0 20px currentColor;
+}
+#playhead{
+  position:absolute;
+  top:0;
+  left:0;
+  width:2px;
+  height:100vh;
+  background:rgba(255,255,255,0.3);
+  z-index:10;
+}
+#info{
+  position:fixed;bottom:10px;left:10px;color:#444;font:10px monospace;z-index:20;
+  max-width:300px;line-height:1.5;
+}
+</style>
+
+<div class="score" id="score"></div>
+<div id="playhead"></div>
+<div id="info">css score — every note is a div.<br>
+left=pitch. width=duration. height=volume. color=timbre. border-radius=attack.<br>
+click to play.</div>
+
+<script>
+// Generate random notes as divs with CSS properties
+const score = document.getElementById('score');
+const playhead = document.getElementById('playhead');
+const noteCount = 40;
+const notes = [];
+
+for(let i = 0; i < noteCount; i++){
+  const div = document.createElement('div');
+  div.className = 'note';
+  
+  const left = 5 + Math.random() * 90; // pitch: 5-95% of viewport
+  const top = 10 + Math.random() * 80;  // vertical position (just visual spread)
+  const width = 1 + Math.random() * 8;  // duration: 1-9% of viewport
+  const height = 4 + Math.random() * 20; // volume: 4-24px
+  const hue = Math.floor(Math.random() * 360); // timbre
+  const radius = Math.floor(Math.random() * 50); // attack curve
+  const opacity = 0.2 + Math.random() * 0.5; // velocity
+  
+  div.style.cssText = `
+    left:${left}%;
+    top:${top}%;
+    width:${width}%;
+    height:${height}px;
+    background:hsl(${hue},60%,50%);
+    border-radius:${radius}% ${50-radius}% ${radius}% ${50-radius}%;
+    opacity:${opacity};
+  `;
+  
+  score.appendChild(div);
+  notes.push({
+    el: div,
+    left: left,
+    width: width,
+    height: height,
+    hue: hue,
+    radius: radius,
+    opacity: opacity,
+    playing: false
+  });
+}
+
+// Audio context
+let ctx = null;
+
+function hueToType(hue){
+  if(hue < 60) return 'sine';
+  if(hue < 120) return 'triangle';
+  if(hue < 240) return 'sawtooth';
+  return 'square';
+}
+
+function playNote(n){
+  if(!ctx) return;
+  const freq = 80 + (n.left / 100) * 800; // 80-880 Hz
+  const dur = (n.width / 100) * 8; // 0.08-0.72 seconds mapped to 0.5-4s
+  const vol = (n.height / 24) * 0.15; // 0-0.15
+  const attack = (n.radius / 50) * 0.5; // 0-0.5s attack
+  
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.type = hueToType(n.hue);
+  osc.frequency.value = freq;
+  
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + attack);
+  gain.gain.linearRampToValueAtTime(vol * 0.6, ctx.currentTime + attack + dur * 0.3);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + dur);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + dur + 0.1);
+  
+  n.el.classList.add('playing');
+  setTimeout(() => n.el.classList.remove('playing'), dur * 1000);
+}
+
+// Playhead animation
+let playing = false;
+let startTime = 0;
+const duration = 15000; // 15 seconds to cross
+
+function animate(ts){
+  if(!playing) return;
+  const elapsed = ts - startTime;
+  const progress = (elapsed % duration) / duration;
+  const x = progress * 100;
+  
+  playhead.style.left = x + '%';
+  
+  // Check which notes the playhead is crossing
+  notes.forEach(n => {
+    const noteStart = n.left;
+    const noteEnd = n.left + n.width;
+    if(x >= noteStart && x <= noteStart + 0.5 && !n.playing){
+      n.playing = true;
+      playNote(n);
+      setTimeout(() => { n.playing = false; }, 500);
+    }
+  });
+  
+  requestAnimationFrame(animate);
+}
+
+document.body.addEventListener('click', () => {
+  if(!ctx) ctx = new AudioContext();
+  if(playing) return;
+  playing = true;
+  startTime = performance.now();
+  requestAnimationFrame(animate);
+}, {once: true});
+</script>

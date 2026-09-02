@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>一个音</title>
+<style>
+body { background:#0a0a0f; color:#ddd8d0; font:14px/1.6 monospace; display:flex; align-items:center; justify-content:center; min-height:100vh; flex-direction:column; }
+button { background:none; border:1px solid rgba(255,255,255,0.2); color:#ddd8d0; font:14px monospace; padding:12px 24px; cursor:pointer; }
+button:hover { border-color:rgba(255,255,255,0.5); }
+p { color:rgba(255,255,255,0.2); margin-top:2rem; font-size:11px; }
+</style>
+<button id="b">按</button>
+<p id="info"></p>
+<script>
+const b = document.getElementById('b');
+const info = document.getElementById('info');
+let ctx;
+
+b.addEventListener('click', () => {
+  if (!ctx) ctx = new AudioContext();
+  
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  // A4 = 440Hz。最基本的音。
+  osc.frequency.value = 440;
+  osc.type = 'sine'; // 正弦波。最纯的波形。
+  
+  gain.gain.setValueAtTime(0.3, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  
+  osc.start();
+  osc.stop(ctx.currentTime + 1.5);
+  
+  info.textContent = '440Hz · sine · A4';
+});
+</script>
